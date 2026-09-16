@@ -1,7 +1,7 @@
 # OmaPiP
 
 OmaPiP mirrors one selected Wayland window in a floating `ScreencopyView`
-inside `omarchy-shell`. It uses no helper, daemon, portal, or sudo.
+inside `omarchy-shell`. It uses no helper, daemon, portal, or administrator privileges.
 
 **External dependencies:** none beyond the standard Omarchy / Quickshell /
 Hyprland environment. OmaPiP does not persist window titles, app IDs, selected
