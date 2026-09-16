@@ -18,6 +18,20 @@ Item {
   readonly property string pickerTitle: "OmaPiP Picker — io.github.roddygithub.omapip"
   readonly property bool sourceUnavailable: selectedAddress !== "" && resolvedToplevel === null
 
+  function boundedText(value, limit) {
+    return String(value || "").slice(0, limit)
+  }
+
+  function validAddress(value) {
+    return /^[0-9a-fA-F]{1,16}$/.test(String(value || ""))
+  }
+
+  function boundedNumber(value, fallback, minimum, maximum) {
+    var number = Number(value)
+    if (!Number.isFinite(number)) return fallback
+    return Math.round(Math.max(minimum, Math.min(maximum, number)))
+  }
+
   function refreshSource() {
     Hyprland.refreshToplevels()
     var list = Hyprland.toplevels.values
@@ -26,7 +40,12 @@ Item {
     for (var i = 0; i < list.length; i++) {
       var toplevel = list[i]
       if (toplevel.title === root.viewerTitle || toplevel.title === root.pickerTitle) continue
-      entries.push(toplevel)
+      if (!root.validAddress(toplevel.address)) continue
+      entries.push({
+        address: toplevel.address,
+        title: root.boundedText(toplevel.title, 160),
+        appId: root.boundedText(toplevel.wayland ? toplevel.wayland.appId : "", 80)
+      })
       if (toplevel.address === root.selectedAddress) found = toplevel
     }
     root.sourceEntries = entries
@@ -35,7 +54,7 @@ Item {
 
   function open(payload) {
     root.refreshSource()
-    var address = String(payload || "").trim()
+    var address = String(payload || "").slice(0, 32).trim()
     if (address !== "" && root.select(address) === "selected") return
     root.pickerVisible = true
   }
@@ -57,14 +76,21 @@ Item {
   function placeAt(left) {
     var address = viewerAddress()
     var monitor = Hyprland.focusedMonitor
-    if (address === "" || !monitor) return
+    if (!root.validAddress(address) || !monitor) return
     var reserved = monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
-    var width = viewerWindow.width > 0 ? viewerWindow.width : 640
-    var height = viewerWindow.height > 0 ? viewerWindow.height : 360
+    var leftReserved = root.boundedNumber(reserved[0], 0, 0, 10000)
+    var rightReserved = root.boundedNumber(reserved[2], 0, 0, 10000)
+    var bottomReserved = root.boundedNumber(reserved[3], 0, 0, 10000)
+    var width = root.boundedNumber(viewerWindow.width, 640, 160, 4000)
+    var height = root.boundedNumber(viewerWindow.height, 360, 90, 4000)
     var margin = 24
-    var x = left ? monitor.x + reserved[0] + margin
-      : monitor.x + monitor.width - reserved[2] - width - margin
-    var y = monitor.y + monitor.height - reserved[3] - height - margin
+    var monitorX = root.boundedNumber(monitor.x, 0, -100000, 100000)
+    var monitorY = root.boundedNumber(monitor.y, 0, -100000, 100000)
+    var monitorWidth = root.boundedNumber(monitor.width, 1920, 160, 10000)
+    var monitorHeight = root.boundedNumber(monitor.height, 1080, 90, 10000)
+    var x = left ? monitorX + leftReserved + margin
+      : monitorX + monitorWidth - rightReserved - width - margin
+    var y = monitorY + monitorHeight - bottomReserved - height - margin
     var selector = "address:0x" + address
     var command = "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y
       + ", window = \"" + selector + "\" }); dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \""
@@ -73,7 +99,8 @@ Item {
   }
 
   function select(address) {
-    var wanted = String(address || "")
+    var wanted = String(address || "").slice(0, 16)
+    if (!root.validAddress(wanted)) return "invalid-address"
     var list = Hyprland.toplevels.values
     for (var i = 0; i < list.length; i++) {
       if (list[i].address !== wanted) continue
@@ -92,7 +119,7 @@ Item {
       return {
         address: t.address,
         title: t.title,
-        appId: t.wayland ? t.wayland.appId : ""
+        appId: t.appId
       }
     }))
   }
@@ -113,20 +140,27 @@ Item {
   function viewerAddress() {
     var list = Hyprland.toplevels.values
     for (var i = 0; i < list.length; i++)
-      if (list[i].title === root.viewerTitle) return list[i].address
+      if (list[i].title === root.viewerTitle && root.validAddress(list[i].address)) return list[i].address
     return ""
   }
 
   function configureViewer() {
     var address = viewerAddress()
     if (address === "") return
+    if (!root.validAddress(address)) return
     var selector = "address:0x" + address
     var monitor = Hyprland.focusedMonitor
     var width = 640
     var height = 360
     var reserved = monitor && monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
-    var x = monitor ? monitor.x + monitor.width - reserved[2] - width - 24 : 24
-    var y = monitor ? monitor.y + monitor.height - reserved[3] - height - 24 : 24
+    var rightReserved = root.boundedNumber(reserved[2], 0, 0, 10000)
+    var bottomReserved = root.boundedNumber(reserved[3], 0, 0, 10000)
+    var monitorX = monitor ? root.boundedNumber(monitor.x, 0, -100000, 100000) : 0
+    var monitorY = monitor ? root.boundedNumber(monitor.y, 0, -100000, 100000) : 0
+    var monitorWidth = monitor ? root.boundedNumber(monitor.width, 1920, 160, 10000) : 1920
+    var monitorHeight = monitor ? root.boundedNumber(monitor.height, 1080, 90, 10000) : 1080
+    var x = monitorX + monitorWidth - rightReserved - width - 24
+    var y = monitorY + monitorHeight - bottomReserved - height - 24
     var commands = [
       "dispatch hl.dsp.window.float({ action = \"enable\", window = \"" + selector + "\" })",
       "dispatch hl.dsp.window.pin({ action = \"enable\", window = \"" + selector + "\" })",
@@ -204,7 +238,8 @@ Item {
               anchors.rightMargin: 12
               anchors.top: parent.top
               anchors.topMargin: 8
-              text: sourceDelegate.modelData.title || (sourceDelegate.modelData.wayland ? sourceDelegate.modelData.wayland.appId : "") || sourceDelegate.modelData.address
+              textFormat: Text.PlainText
+              text: sourceDelegate.modelData.title || sourceDelegate.modelData.appId || sourceDelegate.modelData.address
               color: "#ffffff"
               elide: Text.ElideRight
               font.pixelSize: 14
@@ -214,7 +249,8 @@ Item {
               anchors.leftMargin: 12
               anchors.bottom: parent.bottom
               anchors.bottomMargin: 8
-              text: sourceDelegate.modelData.wayland ? sourceDelegate.modelData.wayland.appId : ""
+              textFormat: Text.PlainText
+              text: sourceDelegate.modelData.appId
               color: "#999999"
               font.pixelSize: 11
             }

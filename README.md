@@ -3,6 +3,10 @@
 OmaPiP mirrors one selected Wayland window in a floating `ScreencopyView`
 inside `omarchy-shell`. It uses no helper, daemon, portal, or sudo.
 
+**External dependencies:** none beyond the standard Omarchy / Quickshell /
+Hyprland environment. OmaPiP does not persist window titles, app IDs, selected
+pixels, captures, credentials, or other window content to disk.
+
 ## Install and open
 
 ```bash
@@ -17,11 +21,12 @@ bar configuration:
 omarchy bar move io.github.roddygithub.omapip --section right
 ```
 
-The selected Hyprland address is retained while the shell is running and is
-never replaced implicitly. The CLI remains available as a secondary path:
+The selected Hyprland address is retained only while the shell is running and
+is never replaced implicitly. The CLI remains available as a secondary path:
 
 ```bash
 omarchy-shell shell summon io.github.roddygithub.omapip
+```
 
 ## Viewer controls
 
