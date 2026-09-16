@@ -234,16 +234,45 @@ Item {
     id: viewerWindow
     visible: root.viewerVisible
     title: root.viewerTitle
+    color: "#000000"
     implicitWidth: 640
     implicitHeight: 360
     minimumSize: Qt.size(160, 90)
 
+    Rectangle {
+      anchors.fill: parent
+      color: "#000000"
+    }
+
     ScreencopyView {
       id: viewer
-      anchors.fill: parent
+      anchors.centerIn: parent
+      width: sourceSize.width > 0
+        ? Math.min(parent.width, parent.height * sourceSize.width / sourceSize.height)
+        : parent.width
+      height: sourceSize.width > 0
+        ? Math.min(parent.height, parent.width * sourceSize.height / sourceSize.width)
+        : parent.height
       captureSource: root.resolvedToplevel ? root.resolvedToplevel.wayland : null
       live: true
       paintCursor: false
+    }
+
+    Rectangle {
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: Math.max(0, (parent.height - viewer.height) / 2)
+      z: 1.5
+      color: "#000000"
+    }
+    Rectangle {
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: Math.max(0, (parent.height - viewer.height) / 2)
+      z: 1.5
+      color: "#000000"
     }
 
     MouseArea {
