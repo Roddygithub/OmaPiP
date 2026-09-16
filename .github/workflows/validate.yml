@@ -16,6 +16,8 @@ jobs:
           m = json.load(open("manifest.json"))
           assert m["schemaVersion"] == 1
           assert m["id"] == "io.github.roddygithub.omapip"
-          assert m["entryPoints"]["panel"] == "Panel.qml"
+          assert m["version"] == "0.1.1"
+          assert m["entryPoints"]["barWidget"] == "BarWidget.qml"
+          assert m["kinds"] == ["bar-widget"]
           PY
           git diff --check
