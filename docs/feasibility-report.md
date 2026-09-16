@@ -194,15 +194,15 @@ Visibility: public
 
 Current branch: `main`
 
-HEAD: voir `git rev-parse HEAD` après le commit initial
+HEAD: `621672e` (`621672e...`)
 
-Git status: propre après publication prévue
+Git status: propre après publication
 
 Remote: `origin https://github.com/Roddygithub/OmaPiP.git`
 
 Commits created: initial feasibility study
 
-Push status: pending until final diff/status inspection
+Push status: PASS — `main` poussé sur `origin`
 
 ## FILES
 
