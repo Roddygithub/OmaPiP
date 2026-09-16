@@ -14,7 +14,7 @@ Choose a window in the picker. The viewer can be moved and resized by the
 compositor. To inspect the loaded source:
 
 ```bash
-omarchy-shell shell call io.github.roddygithub.omapip state ''
+omarchy-shell shell call io.github.roddygithub.omapip status ''
 ```
 
 The selected Hyprland address is never replaced implicitly. If that window is
