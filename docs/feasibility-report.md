@@ -214,6 +214,8 @@ The smallest candidate remains an in-process Omarchy plugin using `FloatingWindo
 
 Updated blockers: real mouse drag/release, all eight resize directions, cursor feedback, ratio policy during live resize, visual above/all-workspaces behavior, and automatic corner placement remain unproven on OmaPiP. Multi-monitor and mixed-DPI remain `DEFERRED_ENVIRONMENT_LIMITATION`. A custom native Hyprland component is a conditional blocker, not an architectural decision yet.
 
+Reconciliation: historical probe results are unchanged. The next work is narrowed to one real `FloatingWindow`: first test standard compositor border resize/cursors and compositor drag, then test placement/ratio and pin/raise/workspace visibility separately. A QML-only global move/resize probe, a portal/PipeWire replacement-capture probe, and browser-specific PiP matching are no longer useful. A custom native Hyprland probe is needed only if standard border interaction fails.
+
 `READY_TO_IMPLEMENT: NO`
 
 ## ARCHITECTURE DECISION
