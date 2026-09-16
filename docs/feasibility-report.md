@@ -148,13 +148,67 @@ Dynamic source switching: FAIL — propriété mutable théorique, mais aucun ch
 
 Prototype performance acceptable: FAIL — pas de mesure isolée CPU/mémoire/latence; shell existant observé à environ 387 MiB RSS, mesure non attribuable au probe.
 
+## REAL omarchy-shell HOST PROBES
+
+Contexte: probe temporaire installé dans `~/.config/omarchy/plugins/io.github.roddygithub.omapip-probe/`, validé par `omarchy plugin validate`, chargé par le processus réel `quickshell -n -p /usr/share/omarchy/shell`. Le fichier a ensuite été désactivé, supprimé, et `shell.json` restauré octet pour octet.
+
+Host plugin loads successfully: PASS — fenêtre `OmaPiP host probe` créée dans le vrai host après redémarrage officiel du shell.
+
+Hyprland.toplevels inside omarchy-shell: PASS — 5 toplevels observés.
+
+activeToplevel inside omarchy-shell: PASS — adresse active observée et cohérente avec `hyprctl activewindow`.
+
+HyprlandToplevel.wayland mapping: PASS — chaque entrée utile exposait `wayland: true`; `appId` et titre cohérents.
+
+hyprctl ↔ HyprlandToplevel mapping: PASS — adresse sans préfixe `0x` du modèle QML correspond à l'adresse `hyprctl` avec préfixe; titre, workspace et classe/appId concordaient.
+
+Live capture in host: PASS — `ScreencopyView.captureSource = HyprlandToplevel.wayland`, `hasContent=true`, tailles 1261x1030 / 626x1030 observées sur deux sources réelles.
+
+Capture while obscured: PASS — capture restée `hasContent=true` avec une seconde fenêtre temporaire en fullscreen au-dessus de la source.
+
+Source resize lifecycle: PASS — source temporaire redimensionnée de 621x1030 à 700x400; `sourceSize` reflétait 700x400.
+
+Source workspace lifecycle: PASS — source déplacée silencieusement de workspace 3 à 4; capture restée active et `sourceSize` inchangée; source restaurée puis supprimée.
+
+Source destruction lifecycle: PASS — fermeture de la source temporaire a retiré son toplevel; le viewer a perdu/repris le contenu sur une autre source. Observation importante: le probe a automatiquement choisi une autre source après destruction; V1 devra traiter explicitement cet état.
+
+Dynamic source switching: PASS — `shell call ... select` a basculé le viewer foot → Brave puis vers une source temporaire sans recréer la fenêtre viewer; `hasContent` et `sourceSize` ont changé.
+
+Floating: PASS — `FloatingWindow` créé puis rendu floating via dispatcher Hyprland temporaire; aucun état persistant ajouté.
+
+Always-above: FAIL — aucune garantie `above` indépendante n'a été démontrée.
+
+Pinned/all-workspaces: FAIL — dispatcher natif `hl.dsp.window.pin` a produit `pinned=true`, mais le comportement réellement visible sur plusieurs workspaces n'a pas été démontré.
+
+Mouse drag move: FAIL — déplacement démontré uniquement via dispatcher `hl.dsp.window.move`, pas via clic gauche + drag.
+
+4-edge resize: FAIL — non démontré par souris.
+
+4-corner resize: FAIL — non démontré par souris.
+
+Resize cursor feedback: FAIL — non démontré.
+
+Aspect ratio: FAIL — ratio libre observé via dispatcher, mais aucun maintien de ratio utilisateur implémenté/testé.
+
+Bottom-right positioning: FAIL — aucune logique de placement automatique du probe; la position dispatcher 2040,780 était seulement un test compositor.
+
+Bottom-left positioning: FAIL — aucune logique de placement automatique du probe.
+
+Performance acceptable: PASS — mesure indicative: host ~457 MiB RSS et ~5.6% CPU pendant capture; après cleanup/restart ~433–439 MiB RSS. Aucun crash, blocage ou symptôme visuel évident; mesure non scientifique et CPU non comparable pendant le démarrage du shell.
+
+Multi-monitor: DEFERRED_ENVIRONMENT_LIMITATION — une seule sortie réelle (`DP-2`, scale 1); aucune sortie virtuelle/headless n'a été créée car cela nécessiterait une validation spécifique et risquerait de modifier l'environnement.
+
+Mixed-DPI: DEFERRED_ENVIRONMENT_LIMITATION — aucun second écran/scale disponible.
+
+Cleanup: PASS — probe désactivé, répertoire utilisateur supprimé, `shell.json` restauré avec hash identique `990c7780...`, plugins existants inchangés, `omarchy-shell shell ping` répond `ok`, aucun viewer temporaire restant.
+
 ## ARCHITECTURE DECISION
 
-Recommended Omarchy plugin kind(s): `panel`; possiblement `service` si la sélection/source doit survivre indépendamment de la fenêtre.
+Recommended Omarchy plugin kind(s): `panel`; possiblement `service` si la sélection/source doit survivre indépendamment de la fenêtre. Le contexte host réel est requis.
 
-Recommended architecture: plugin Omarchy tiers minimal, chargé on-demand, avec `FloatingWindow` + `ScreencopyView` + `ToplevelManager`; utiliser `hyprctl`/IPC seulement pour les opérations compositor qui ne sont pas exposées nativement.
+Recommended architecture: plugin Omarchy tiers minimal, chargé on-demand dans `omarchy-shell`, avec `FloatingWindow` + `ScreencopyView` + `Hyprland.toplevels`; utiliser le dispatcher Hyprland Lua/IPC pour float, pin, move et resize lorsque Quickshell ne fournit pas l'opération.
 
-External process/helper required: `NO` pour le chemin de capture démontré; **décision finale bloquée** par déplacement/redimensionnement, multi-écran et stabilité non testés.
+External process/helper required: `NO` — aucune nécessité démontrée après les host probes; la capture et le mapping fonctionnent in-process.
 
 If YES, exact demonstrated reason: N/A. Un helper ne doit être ajouté que si les probes manquants démontrent que le protocole de fenêtre/resize ou l'isolation ne peut pas être satisfait dans le shell.
 
@@ -164,7 +218,7 @@ Main components: source selector, source identity/model, `ScreencopyView`, `Floa
 
 Communication mechanism if applicable: IPC shell Omarchy pour summon/change/close; `hyprctl` IPC uniquement après preuve qu'une API native Quickshell ne suffit pas.
 
-Why this architecture is preferred: capture live d'un Toplevel observée sans dépendance ni modification d'Omarchy système; elle respecte le plugin natif et garde le code court.
+Why this architecture is preferred: dans le vrai `omarchy-shell`, le mapping adresse↔Toplevel↔Wayland et la capture live ont été observés sans dépendance ni modification d'Omarchy système; elle respecte le plugin natif et garde le code court.
 
 Alternatives rejected: capture d'écran périodique (`grim`) — ce n'est pas un miroir live indépendant et serait plus lourd; helper Rust/C — aucune nécessité démontrée; layer-shell plein écran — risque connu de capture/input region et mauvais modèle pour une fenêtre déplaçable.
 
@@ -172,13 +226,13 @@ Impact on omarchy-shell stability: important — un plugin QML s'exécute dans l
 
 Future Interactive Mirror compatibility: conserver capture et surface comme composants séparés; l'injection de clic/clavier exige des protocoles Wayland dédiés (probablement portail/virtual-input), consentement et contrôle de sécurité. Ne pas transmettre d'input en V1.
 
-Known limitations: aucun mapping unique démontré entre adresse Hyprland et objet Toplevel; tests interactifs et multi-écrans absents; `FloatingWindow` ne garantit pas à lui seul above/all-workspaces ni déplacement libre.
+Known limitations: above, drag souris, resize souris 8 zones, curseurs, ratio conservé et placement automatique restent non démontrés; multi-monitor/mixed-DPI sont différés par l'environnement. La destruction nécessite un état explicite plutôt qu'une sélection automatique implicite.
 
 Risks: capture autorisée par configuration (`xdph.conf` contient `allow_token_by_default = true`), fuite/crash dans `omarchy-shell`, surfaces qui interceptent les clics, disparition de la source, coûts GPU/CPU pendant resize.
 
-Blockers: exécuter sur une seconde sortie et tester manuellement source couverte/redimensionnée/détruite; démontrer drag gauche, 8 zones de resize, placement, above/pin et changement de source; mesurer CPU/mémoire.
+Blockers: démontrer drag gauche + resize natif/dispatcher sur 8 zones, feedback curseur, above, ratio et placement; ajouter ensuite les tests multi-monitor lorsque l'environnement le permet.
 
-`READY_TO_IMPLEMENT: NO` — les probes interactifs, multi-écrans, source lifecycle et performances restent bloquants.
+`READY_TO_IMPLEMENT: NO` — les gates move/resize/above/placement/ratio restent bloquants; multi-monitor et mixed-DPI sont différés, non considérés comme échec architectural.
 
 ## STOP CONDITION
 
@@ -210,7 +264,7 @@ Files created: `AGENTS.md`, `README.md`, `.gitignore`, `LICENSE`, `docs/feasibil
 
 Files modified: none.
 
-Files intentionally not created yet: plugin manifest, production QML, shell config changes, keybindings, helper process, tests de production, `.pi` resources.
+Files intentionally not created yet: plugin manifest de production, production QML, shell config changes, keybindings, helper process, tests de production, `.pi` resources. Le manifest/QML sous `probes/omarchy-host/` reste explicitement NON PRODUCTION.
 
 ## PI
 
@@ -239,12 +293,17 @@ Tests/probes executed:
 - `timeout 8s qs -p probes/capture.qml` — lancement réussi, `capture hasContent=true`, `sourceSize=1261x1030`.
 - `omarchy plugin validate <temporary-fixture>` — PASS.
 - `hyprctl clients -j`, `hyprctl monitors -j` — PASS.
+- `omarchy plugin validate probes/omarchy-host` — PASS.
+- Installation temporaire, `omarchy plugin enable`, `omarchy-shell shell summon`, `omarchy-shell shell call`, puis désactivation/suppression/restauration — PASS.
+- Redémarrage officiel `omarchy restart shell` — PASS; `omarchy-shell shell ping` répond `ok` après cleanup.
+- Dispatchers Hyprland temporaires float/pin/move/resize/fullscreen/close — PASS pour les opérations démontrées, sans règle persistante.
+- Mesures RSS/CPU indicatives avec capture puis après cleanup — PASS, voir la section host.
 
-Passed: versions, repo GitHub, manifest fixture, Hyprland enumeration, FloatingWindow mapping, ScreencopyView content.
+Passed: contexte host réel, plugin load, toplevel enumeration/mapping, capture live, obscuration, resize lifecycle, workspace lifecycle, destruction/recovery, dynamic source switching, floating, pin, performance indicative.
 
-Failed: Toplevel list dans probe isolé, mapping adresse↔Toplevel, et tous les essais interactifs/non disponibles listés ci-dessus.
+Failed: always-above, clic gauche + drag, resize souris 8 zones, feedback curseur, ratio conservé, placement automatique; les probes standalone restent non représentatifs pour les toplevels.
 
-Skipped: tests multi-écrans, obscuration, destruction, drag/resize, performance, changement source.
+Skipped/deferred: multi-écrans et mixed-DPI (`DEFERRED_ENVIRONMENT_LIMITATION`), aucun écran virtuel créé; fullscreen source non testé séparément.
 
 ## SOURCES
 
@@ -256,7 +315,7 @@ Hyprland documentation consulted: sorties locales `hyprctl version`, `clients -j
 
 Quickshell documentation consulted: métadonnées de types installées pour `ScreencopyView`, `Toplevel`, `ToplevelManager`, `FloatingWindow`; exemples `/usr/share/omarchy/shell/plugins/dev-gallery/GalleryPanel.qml`.
 
-Relevant plugins inspected: `omarchy.dev-gallery`, `omarchy.monitor`, `omarchy.menu`, `omarchy.image-picker`, `omarchy.bar`, `io.github.andressm415.omaprox`, `io.github.thisisgm.discord`, `quickshell.spotify`, `OmaWhatsApp`, `OmaConnect`.
+Relevant plugins inspected: `omarchy.dev-gallery`, `omarchy.monitor`, `omarchy.menu`, `omarchy.image-picker`, `omarchy.bar`, `io.github.andressm415.omaprox`, `io.github.thisisgm.discord`, `quickshell.spotify`, `OmaWhatsApp`, `OmaConnect`, et le probe temporaire `probes/omarchy-host`.
 
 ## HUMAN DECISIONS REQUIRED
 
