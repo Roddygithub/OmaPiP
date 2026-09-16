@@ -248,19 +248,19 @@ Visibility: public
 
 Current branch: `main`
 
-HEAD: `0802158` (`0802158...`)
+HEAD: `cd04275` (`cd04275...`)
 
 Git status: propre après publication
 
 Remote: `origin https://github.com/Roddygithub/OmaPiP.git`
 
-Commits created: initial feasibility study, GitHub governance PR #1, MIT license and probe PR #2
+Commits created: initial feasibility study, GitHub governance PR #1, MIT license/probe PR #2, host probe PR #4
 
-Push status: PASS — `main` à jour sur `origin` via PR #2
+Push status: PASS — `main` à jour sur `origin` via PR #4
 
 ## FILES
 
-Files created: `AGENTS.md`, `README.md`, `.gitignore`, `LICENSE`, `docs/feasibility-report.md`, `docs/github-governance.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, and probe files.
+Files created: `AGENTS.md`, `README.md`, `.gitignore`, `LICENSE`, `docs/feasibility-report.md`, `docs/github-governance.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, and probe files including `probes/omarchy-host/`.
 
 Files modified: none.
 
