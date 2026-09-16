@@ -248,7 +248,7 @@ Visibility: public
 
 Current branch: `main`
 
-HEAD: `cd04275` (`cd04275...`)
+HEAD: current `main` (verified clean after the final report merge)
 
 Git status: propre après publication
 
