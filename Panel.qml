@@ -11,6 +11,7 @@ Item {
   property var sourceEntries: []
   property bool pickerVisible: false
   property bool viewerVisible: false
+  property bool viewerConfigured: false
   readonly property bool sourceUnavailable: selectedAddress !== "" && resolvedToplevel === null
 
   function refreshSource() {
@@ -20,6 +21,7 @@ Item {
     var entries = []
     for (var i = 0; i < list.length; i++) {
       var toplevel = list[i]
+      if (toplevel.title === "OmaPiP") continue
       entries.push(toplevel)
       if (toplevel.address === root.selectedAddress) found = toplevel
     }
@@ -47,6 +49,7 @@ Item {
       root.selectedAddress = wanted
       root.resolvedToplevel = list[i]
       root.pickerVisible = false
+      root.viewerConfigured = false
       root.viewerVisible = true
       return "selected"
     }
@@ -70,9 +73,44 @@ Item {
       sourceUnavailable: root.sourceUnavailable,
       pickerVisible: root.pickerVisible,
       viewerVisible: root.viewerVisible,
+      viewerConfigured: root.viewerConfigured,
       hasContent: viewer.hasContent,
       sourceSize: viewer.sourceSize.width + "x" + viewer.sourceSize.height
     })
+  }
+
+  function viewerAddress() {
+    var list = Hyprland.toplevels.values
+    for (var i = 0; i < list.length; i++)
+      if (list[i].title === "OmaPiP") return list[i].address
+    return ""
+  }
+
+  function configureViewer() {
+    var address = viewerAddress()
+    if (address === "") return
+    var selector = "address:0x" + address
+    var monitor = Hyprland.focusedMonitor
+    var width = 640
+    var height = 360
+    var x = monitor ? monitor.x + monitor.width - width - 24 : 24
+    var y = monitor ? monitor.y + monitor.height - height - 24 : 24
+    var commands = [
+      "dispatch hl.dsp.window.float({ action = \"enable\", window = \"" + selector + "\" })",
+      "dispatch hl.dsp.window.pin({ action = \"enable\", window = \"" + selector + "\" })",
+      "dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \"" + selector + "\" })",
+      "dispatch hl.dsp.window.resize({ x = " + width + ", y = " + height + ", window = \"" + selector + "\" })",
+      "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y + ", window = \"" + selector + "\" })"
+    ]
+    Quickshell.execDetached(["hyprctl", "--batch", commands.join("; ")])
+    root.viewerConfigured = true
+  }
+
+  Timer {
+    interval: 300
+    running: root.viewerVisible && !root.viewerConfigured
+    repeat: true
+    onTriggered: root.configureViewer()
   }
 
   Timer {

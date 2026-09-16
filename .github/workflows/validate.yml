@@ -1,0 +1,21 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate manifest and whitespace
+        run: |
+          python3 - <<'PY'
+          import json
+          m = json.load(open("manifest.json"))
+          assert m["schemaVersion"] == 1
+          assert m["id"] == "io.github.roddygithub.omapip"
+          assert m["entryPoints"]["panel"] == "Panel.qml"
+          PY
+          git diff --check
