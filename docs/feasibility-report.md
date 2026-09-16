@@ -202,6 +202,20 @@ Mixed-DPI: DEFERRED_ENVIRONMENT_LIMITATION — aucun second écran/scale disponi
 
 Cleanup: PASS — probe désactivé, répertoire utilisateur supprimé, `shell.json` restauré avec hash identique `990c7780...`, plugins existants inchangés, `omarchy-shell shell ping` répond `ok`, aucun viewer temporaire restant.
 
+## ECOSYSTEM PRIOR-ART UPDATE
+
+Date: 2026-09-16. A read-only audit of the registry used by `plugins.omarchy.org` and the repositories for `io.github.softarv.pip`, `io.github.rawritude.floating-mode`, and `spacexrace.screen-mirroring` was completed. The external `sburkhard.pip` repository was also inspected. Full findings and the blocker matrix are in [`docs/ecosystem-prior-art.md`](ecosystem-prior-art.md).
+
+The audit found no existing equivalent to OmaPiP: the PiP plugins target browser-created PiP windows, while OmaPiP targets arbitrary `HyprlandToplevel` sources captured through `ScreencopyView`. Forking is not recommended. PiP Handler and srburk PiP provide reusable patterns for address matching, reserved work-area geometry, fractional-scale conversion, aspect-preserving corner sizing, explicit `pin` plus `alter_zorder(top)`, and release-time corner snapping.
+
+Floating Window Mode confirms the important ownership boundary: normal drag, border resizing, directional cursors, and custom hit zones are compositor-owned. Its eight-way custom behavior is implemented by the native `omarchy-windows-snap` Hyprland plugin; `hyprbars` supplies titlebar drag, while Lua supplies rules/configuration and dispatches. This demonstrates that a native component is possible, but not yet that OmaPiP needs one: first probe standard Hyprland `resize_on_border` and compositor drag on the actual OmaPiP `FloatingWindow`.
+
+The smallest candidate remains an in-process Omarchy plugin using `FloatingWindow`, `ScreencopyView`, `Hyprland.toplevels`, a small geometry function, and Lua/Hyprland dispatch for initial float/pin/raise/size/placement. Keep the portal optional for source-selection consent only; do not replace the passing capture path. No V1 implementation starts here.
+
+Updated blockers: real mouse drag/release, all eight resize directions, cursor feedback, ratio policy during live resize, visual above/all-workspaces behavior, and automatic corner placement remain unproven on OmaPiP. Multi-monitor and mixed-DPI remain `DEFERRED_ENVIRONMENT_LIMITATION`. A custom native Hyprland component is a conditional blocker, not an architectural decision yet.
+
+`READY_TO_IMPLEMENT: NO`
+
 ## ARCHITECTURE DECISION
 
 Recommended Omarchy plugin kind(s): `panel`; possiblement `service` si la sélection/source doit survivre indépendamment de la fenêtre. Le contexte host réel est requis.
