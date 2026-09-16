@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.roddygithub.omapip-probe",
+  "name": "OmaPiP host probe",
+  "version": "0.0.1",
+  "author": "OmaPiP research",
+  "license": "MIT",
+  "description": "Disposable non-production probe for the real omarchy-shell host.",
+  "kinds": ["panel"],
+  "activation": "on-demand",
+  "keepLoaded": true,
+  "entryPoints": { "panel": "Probe.qml" }
+}
