@@ -1,0 +1,17 @@
+# Generated/runtime files
+.pi/npm/
+.pi/sessions/
+node_modules/
+*.log
+*.swp
+.DS_Store
+
+# Probe output
+probes/tmp/
+
+# Secrets and machine-local overrides
+.env
+.env.*
+*.pem
+*.key
+credentials*
