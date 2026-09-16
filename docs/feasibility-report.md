@@ -250,6 +250,42 @@ Blockers: démontrer drag gauche + resize natif/dispatcher sur 8 zones, feedback
 
 `READY_TO_IMPLEMENT: NO` — les gates move/resize/above/placement/ratio restent bloquants; multi-monitor et mixed-DPI sont différés, non considérés comme échec architectural.
 
+## FINAL UX FEASIBILITY PROBES
+
+Date: 2026-09-16. A temporary version of the existing host probe was installed in the real `omarchy-shell`. Runtime-only Hyprland Lua configuration was evaluated and then restored; no user configuration file or system file was changed. The host probe was disabled and removed after testing.
+
+### Results
+
+- Standard 8-direction resize: **FAIL — not demonstrated**. Hyprland 0.56.2 accepted the runtime `resize_on_border = true` configuration, but the environment has no available pointer-injection tool (`wtype` is keyboard-only and the user is not permitted to use `/dev/uinput`). The eight mouse directions could not be honestly tested.
+- Resize cursor feedback: **FAIL — not demonstrated** for the same reason. No cursor observation was counted as evidence.
+- Compositor move control: **PASS** — the temporary `FloatingWindow` was floating and compositor `hl.dsp.window.move` worked. This is an IPC control test, not mouse evidence.
+- Left-click drag without modifier: **FAIL — not tested**. No pointer click/drag injection was available.
+- Drag/release: **FAIL — not tested**. No continuous pointer drag or release could be observed.
+- Work-area geometry: **PASS** for the current real monitor data. `DP-2` reported `2560x1080`, scale `1`, reserved `[0,26,0,0]`; a `480x270` viewer was placed with a `12px` margin at the calculated bottom coordinates.
+- Bottom-right placement: **FAIL — visual confirmation missing**. Geometry calculated `(2068,798)` for the current monitor and viewer size, and the reported rectangle remained fully within the non-reserved work area; the required visual confirmation was not claimed.
+- Bottom-left placement: **FAIL — visual confirmation missing**. Geometry calculated `(12,798)` with the same constraints; the required visual confirmation was not claimed.
+- Initial aspect ratio: **FAIL — not tested** with a known-ratio source during a fresh PiP creation.
+- Live locked aspect ratio: **FAIL — not tested**. Standard compositor resize could not be performed with the mouse.
+- Release corrected aspect ratio: **NOT_NEEDED** — no drag/release path was available to test; keep this as a later policy option, not a proven result.
+- Pin visible all workspaces: **FAIL — not demonstrated visually**. `pin=true` and same-window state were observed, but workspace switching did not complete through the available keyboard automation, so no cross-workspace visual claim is made.
+- Above normal windows: **FAIL — not tested visually**. The explicit `pin` and `alter_zorder(top)` dispatches were accepted, but no controlled visual stacking test was completed.
+- Above floating windows: **FAIL — not tested visually**.
+- Fullscreen behavior: **not conclusively tested**. Hyprland metadata reported `allowedOverFullscreen=true` for the temporary surface; this is not treated as proof of visible behavior over exclusive fullscreen.
+- Source destruction explicit state: **FAIL** for this probe revision. After the selected temporary source was closed, the viewer state still resolved to another toplevel/source rather than exposing the required explicit unavailable state. This confirms the existing report's warning; the temporary probe itself was then removed.
+- Interactive performance acceptable: **FAIL — not measured during mouse interaction**. The earlier indicative static-capture PASS remains historical and unchanged.
+- Multi-monitor: **DEFERRED_ENVIRONMENT_LIMITATION** — only `DP-2` was available.
+- Mixed-DPI: **DEFERRED_ENVIRONMENT_LIMITATION** — only scale `1` was available.
+- Custom Hyprland component required: **UNRESOLVED**. Standard configuration acceptance was shown, but the required mouse behavior was not observable in this environment. No native component was developed.
+- Cleanup: **PASS** — temporary plugin disabled and removed; `shell.json` returned to hash `990c7780e662f8b22b33933c5b4c900b9d4ae018ae39d9729693f1b408ddd9d2`; no probe window or installation remained; `omarchy-shell shell ping` returned `ok`; Git remained clean before this report update.
+
+### Interpretation
+
+The non-pointer results improve the placement and dispatch design but do not close the UX gate. The inability to inject real pointer events is an environment/tooling limitation, not evidence that Hyprland resize or drag is impossible. The source-destruction probe remains a real failure of the current disposable probe behavior and requires an explicit unavailable state in V1; no automatic fallback source is acceptable.
+
+`FINAL_PROBES_COMPLETE: NO`
+`CUSTOM_HYPRLAND_COMPONENT_REQUIRED: UNRESOLVED`
+`READY_TO_IMPLEMENT: NO`
+
 ## STOP CONDITION
 
 Arrêt volontaire avant toute implémentation V1. Les probes QML sont jetables et ne sont pas du code de production. Les probes supplémentaires `hyprland.qml` et `capture-hyprland.qml` ont confirmé l'absence de toplevels dans une instance Quickshell autonome, sans modifier Omarchy.
