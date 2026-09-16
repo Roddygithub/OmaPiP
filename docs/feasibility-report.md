@@ -286,6 +286,39 @@ The non-pointer results improve the placement and dispatch design but do not clo
 `CUSTOM_HYPRLAND_COMPONENT_REQUIRED: UNRESOLVED`
 `READY_TO_IMPLEMENT: NO`
 
+## HUMAN-IN-THE-LOOP UX VALIDATION
+
+Date: 2026-09-16. Human interaction was used for the previously unautomatable mouse and visual checks. The temporary host probe ran in the real `omarchy-shell`; Hyprland/Quickshell state and geometry were checked after each relevant action. Historical results above are unchanged.
+
+### Combined results
+
+- `LEFT_CLICK_DRAG_WITHOUT_MODIFIER: PASS` — human observed continuous movement, persistent capture, and no visible flicker/loss. Hyprland confirmed the same probe address `0x5610b140ce40` moved to `(539,259)` and remained floating/visible. The test used a temporary compositor `mouse:272` binding to `hl.dsp.window.drag()`, not a native module.
+- `DRAG_RELEASE: PASS` — human observed a continuous long drag, clean release, no unexpected jump, no capture loss, and no flicker. Hyprland confirmed final geometry `(377,160)`, `640×360`, same address and active capture.
+- `STANDARD_8_DIRECTION_RESIZE: PASS` — all four edges and all four corners resized the real floating viewer. Hyprland geometry changed after each test and `ScreencopyView` remained active. No custom native component was used.
+- `RESIZE_CURSOR_FEEDBACK: PASS` — human confirmed horizontal, vertical, and both mirrored diagonal cursor directions before clicking.
+- `BOTTOM_RIGHT_PLACEMENT: PASS` — human confirmed the calculated `(1968,703)` placement was fully visible, correctly margined, clear of the reserved top bar, and visually bottom-right. Hyprland confirmed `580×365` at that position.
+- `BOTTOM_LEFT_PLACEMENT: PASS` — human confirmed the calculated `(12,703)` placement met the same conditions. Hyprland confirmed the corresponding position.
+- `PIN_VISIBLE_ALL_WORKSPACES: PASS` — human observed the same functional PiP on three workspaces without duplication or disappearance. Hyprland retained the same address and `pinned=true`; capture remained active on return.
+- `ABOVE_NORMAL_WINDOWS: PASS` — human observed the PiP above a tiled normal window while that window could still receive focus; capture continued.
+- `ABOVE_FLOATING_WINDOWS: PASS` — human observed the PiP above an overlapping floating window while the floating window could still receive focus; capture continued.
+- `FULLSCREEN_BEHAVIOR: PASS as observed, not a new V1 requirement` — human observed the PiP remain visible above fullscreen, without disappearance, with capture continuing. Hyprland metadata reported `allowedOverFullscreen=true`; exclusive-fullscreen generalization is not claimed.
+- `INITIAL_ASPECT_RATIO: PASS` — human observed the known-ratio Brave capture without visible distortion. `ScreencopyView` aspect-fit produced bands rather than stretching.
+- `LIVE_LOCKED_ASPECT_RATIO: FAIL` — no geometric lock was present during free compositor resize; the content remained undistorted through aspect-fit/letterboxing.
+- `RELEASE_CORRECTED_ASPECT_RATIO: NOT_NEEDED` — the observed aspect-fit behavior is a simpler acceptable V1 policy; no release correction was implemented or required by this gate.
+- `SOURCE_DESTRUCTION_EXPLICIT_STATE: FAIL` — after closing the selected source, the viewer remained but the temporary probe still resolved to another toplevel (`Dota Underlords`) and reported `sourceUnavailable=false`. This remains a V1 blocker.
+- `INTERACTIVE_PERFORMANCE_ACCEPTABLE: PASS` — human reported smooth drag/resize with no flicker or blocking; capture remained active. Indicative shell snapshot after interaction was approximately `395396 KiB RSS` and `5.4% CPU`; this is not a benchmark.
+- `MULTI_MONITOR: DEFERRED_ENVIRONMENT_LIMITATION` — one output only.
+- `MIXED_DPI: DEFERRED_ENVIRONMENT_LIMITATION` — scale 1 only.
+- `CUSTOM_HYPRLAND_COMPONENT_REQUIRED: NO` — standard Hyprland border resize/cursors passed on the real `FloatingWindow`; no native module is justified. The no-modifier move used a temporary compositor binding and should remain a small Lua/compositor integration, not custom native code.
+- `CLEANUP: PASS` — temporary plugin and test windows removed, runtime Hyprland settings restored, `shell.json` restored to `990c7780e662f8b22b33933c5b4c900b9d4ae018ae39d9729693f1b408ddd9d2`, no probe installation remained, `omarchy-shell shell ping` returned `ok`, and no repository files were modified before this documentation update.
+
+### Gate decision
+
+The human gate closes the mouse, cursor, placement, pin, normal z-order, and interaction-performance blockers. It does not close the source-destruction blocker: the viewer must preserve a stable selected identity and expose an explicit unavailable state instead of selecting an arbitrary replacement. This is a small behavioral correction, but it is still required before V1 approval.
+
+`HUMAN_UX_GATE_COMPLETE: YES`
+`READY_TO_IMPLEMENT: NO`
+
 ## STOP CONDITION
 
 Arrêt volontaire avant toute implémentation V1. Les probes QML sont jetables et ne sont pas du code de production. Les probes supplémentaires `hyprland.qml` et `capture-hyprland.qml` ont confirmé l'absence de toplevels dans une instance Quickshell autonome, sans modifier Omarchy.
