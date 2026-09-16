@@ -123,13 +123,13 @@ Settings changed: repository merge methods, automatic branch deletion, Actions p
 
 Files created: `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, `LICENSE`, `docs/github-governance.md`, and additional probe files.
 
-Files modified: `AGENTS.md`.
+Files modified: `AGENTS.md`; later report/probe updates were delivered in PR #2.
 
-Commits created: PR #1 squash-merged as `6e6c4cd`; this follow-up will be delivered through a new PR.
+Commits created: PR #1 squash-merged as `6e6c4cd`; PR #2 squash-merged as `0802158`.
 
-Branch: `main` (governance commit was pushed directly before the new main ruleset was applied; future V1 work must use PRs).
+Branch: `main` (current repository state; the two setup changes were delivered through PRs #1 and #2; future V1 work must use PRs).
 
-PR created: PR #1 was created, CI-free checks were empty, squash-merged, and its head branch was deleted. Follow-up license/probe changes must use another PR.
+PR created: PR #1 and PR #2 were created, CI-free checks were empty, squash-merged, and their head branches were deleted.
 
 GitHub checks: no workflows/checks currently exist.
 
