@@ -2,12 +2,17 @@
   "schemaVersion": 1,
   "id": "io.github.roddygithub.omapip",
   "name": "OmaPiP",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Roddy Salardon",
   "license": "MIT",
   "description": "Live Picture-in-Picture mirror for any Wayland window.",
-  "kinds": ["panel"],
-  "activation": "on-demand",
-  "keepLoaded": true,
-  "entryPoints": { "panel": "Panel.qml" }
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "OmaPiP",
+    "description": "Live Picture-in-Picture mirror for a Wayland window",
+    "category": "Window management",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
 }

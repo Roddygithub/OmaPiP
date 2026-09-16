@@ -7,11 +7,21 @@ inside `omarchy-shell`. It uses no helper, daemon, portal, or sudo.
 
 ```bash
 omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
-omarchy-shell shell summon io.github.roddygithub.omapip
 ```
 
-Select a source in the picker. The selected Hyprland address is retained while
-the shell is running and is never replaced implicitly.
+The **** OmaPiP icon appears in the right bar section. Click it to open the
+source picker, then select a window. To move the widget using Omarchy's normal
+bar configuration:
+
+```bash
+omarchy bar move io.github.roddygithub.omapip --section right
+```
+
+The selected Hyprland address is retained while the shell is running and is
+never replaced implicitly. The CLI remains available as a secondary path:
+
+```bash
+omarchy-shell shell summon io.github.roddygithub.omapip
 
 ## Viewer controls
 

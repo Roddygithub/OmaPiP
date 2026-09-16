@@ -234,6 +234,7 @@ Item {
     id: viewerWindow
     visible: root.viewerVisible
     title: root.viewerTitle
+    color: "#000000"
     implicitWidth: 640
     implicitHeight: 360
     minimumSize: Qt.size(160, 90)
