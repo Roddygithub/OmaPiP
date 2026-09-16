@@ -18,7 +18,7 @@ commit, environment, impact, and reproduction details only when safe.
 ## V1 security boundaries
 
 - No network requests, authentication, secrets, temporary files, or capture persistence.
-- No sudo, package manager, service installation, helper, daemon, or portal.
+- No administrator elevation, package manager, service installation, helper, daemon, or portal.
 - No writes to `/usr/share/omarchy` or persistent Hyprland configuration.
 - Hyprland commands use validated compositor addresses and bounded numeric geometry.
 - Move and resize requests are native Wayland requests scoped to the OmaPiP viewer.
