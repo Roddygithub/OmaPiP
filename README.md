@@ -1,25 +1,47 @@
 # OmaPiP
 
-OmaPiP mirrors a selected Wayland window in a floating `ScreencopyView`.
-It runs inside `omarchy-shell`; no helper, portal, or daemon is required.
+OmaPiP mirrors one selected Wayland window in a floating `ScreencopyView`
+inside `omarchy-shell`. It uses no helper, daemon, portal, or sudo.
 
-## Install
+## Install and open
 
 ```bash
 omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 omarchy-shell shell summon io.github.roddygithub.omapip
 ```
 
-Choose a window in the picker. The viewer can be moved and resized by the
-compositor. To inspect the loaded source:
+Select a source in the picker. The selected Hyprland address is retained while
+the shell is running and is never replaced implicitly.
+
+## Viewer controls
+
+- **Left click + drag** moves the viewer without `Super`.
+- Drag any edge or corner to resize; Hyprland supplies the directional cursor.
+- **Choose** reopens the source picker while capture continues.
+- **Left** and **Right** place the viewer in the corresponding bottom corner.
+- **Close** closes only OmaPiP, not the source window.
+- If the source is destroyed, click **Choose another window** to reselect it.
+
+The viewer is floating, pinned across workspaces, raised above normal windows,
+and initially placed bottom-right inside the monitor's reserved work area.
+
+## Inspect state
 
 ```bash
-omarchy-shell shell call io.github.roddygithub.omapip state ''
+omarchy-shell shell call io.github.roddygithub.omapip status ''
 ```
 
-The selected Hyprland address is never replaced implicitly. If that window is
-destroyed, OmaPiP shows an unavailable state until the user selects another one.
+## Disable or uninstall
 
-V1 intentionally does not promise live geometric aspect-ratio locking or
-multi-monitor/mixed-DPI policy. See [`docs/feasibility-report.md`](docs/feasibility-report.md)
-for the validated architecture and accepted limitations.
+```bash
+omarchy plugin disable io.github.roddygithub.omapip
+omarchy plugin remove io.github.roddygithub.omapip --yes
+```
+
+## V1 limitations
+
+- `LIVE_GEOMETRIC_ASPECT_LOCK: NOT_SUPPORTED_V1`
+- `MULTI_MONITOR_VALIDATION: DEFERRED`
+- `MIXED_DPI_VALIDATION: DEFERRED`
+
+The capture is aspect-fit and may show letterboxing while the viewer is resized.
