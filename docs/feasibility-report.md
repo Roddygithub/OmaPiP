@@ -194,15 +194,15 @@ Visibility: public
 
 Current branch: `main`
 
-HEAD: `621672e` (`621672e...`)
+HEAD: `0802158` (`0802158...`)
 
 Git status: propre après publication
 
 Remote: `origin https://github.com/Roddygithub/OmaPiP.git`
 
-Commits created: initial feasibility study
+Commits created: initial feasibility study, GitHub governance PR #1, MIT license and probe PR #2
 
-Push status: PASS — `main` poussé sur `origin`
+Push status: PASS — `main` à jour sur `origin` via PR #2
 
 ## FILES
 
