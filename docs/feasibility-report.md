@@ -98,17 +98,17 @@ Fresh Pi session can safely resume OmaPiP: `YES` — ouvrir `~/Projects/OmaPiP`,
 
 Les résultats marqués FAIL incluent les comportements non testés dans cette session; ils ne signifient pas nécessairement une impossibilité intrinsèque.
 
-Window enumeration: PASS — `hyprctl clients -j` retourne 3 clients avec adresse stable, classe, titre, PID, workspace.
+Window enumeration: PASS — `hyprctl clients -j` retourne 3 clients avec adresse stable, classe, titre, PID, workspace. Le probe Quickshell autonome avec `Hyprland.toplevels` reste vide malgré `refreshToplevels()`.
 
 Active window identification: PASS — `hyprctl activewindow -j` disponible; `ToplevelManager.activeToplevel` est exposé par Quickshell mais nul dans le probe isolé.
 
 Interactive window selection: FAIL — aucune sélection interactive sûre n'a été lancée; `slurp` est installé mais sélectionne une région, pas une fenêtre native.
 
-Hyprland ↔ Toplevel mapping: FAIL — Toplevel expose appId/titre/workspace-écrans mais pas l'adresse Hyprland/PID observé; corrélation heuristique seulement.
+Hyprland ↔ Toplevel mapping: FAIL — l'API locale `HyprlandToplevel` déclare bien `address` et `wayland`, mais le probe autonome n'a reçu aucun toplevel; la disponibilité dans le contexte `omarchy-shell` reste à vérifier.
 
 Live arbitrary-window capture: PASS — probe `probes/capture.qml` avec `ScreencopyView.captureSource` a produit `hasContent=true`, source `1261x1030`.
 
-Toplevel capture: PASS — le même probe compile et accepte un `Toplevel` comme `captureSource`; résultat live observé.
+Toplevel capture: PASS — le probe initial compile et accepte un `Toplevel` comme `captureSource`; résultat live observé. Le nouveau chemin `HyprlandToplevel.wayland` n'a pas pu sélectionner de source car la liste autonome est vide.
 
 Capture while source is obscured: FAIL — non testé expérimentalement.
 
@@ -178,11 +178,11 @@ Risks: capture autorisée par configuration (`xdph.conf` contient `allow_token_b
 
 Blockers: exécuter sur une seconde sortie et tester manuellement source couverte/redimensionnée/détruite; démontrer drag gauche, 8 zones de resize, placement, above/pin et changement de source; mesurer CPU/mémoire.
 
-`READY_TO_IMPLEMENT: NO`
+`READY_TO_IMPLEMENT: NO` — les probes interactifs, multi-écrans, source lifecycle et performances restent bloquants.
 
 ## STOP CONDITION
 
-Arrêt volontaire avant toute implémentation V1. Les deux probes QML sont jetables et ne sont pas du code de production.
+Arrêt volontaire avant toute implémentation V1. Les probes QML sont jetables et ne sont pas du code de production. Les probes supplémentaires `hyprland.qml` et `capture-hyprland.qml` ont confirmé l'absence de toplevels dans une instance Quickshell autonome, sans modifier Omarchy.
 
 ## REPOSITORY
 
@@ -206,7 +206,7 @@ Push status: PASS — `main` poussé sur `origin`
 
 ## FILES
 
-Files created: `AGENTS.md`, `README.md`, `.gitignore`, `docs/feasibility-report.md`, `probes/enumerate.qml`, `probes/capture.qml`.
+Files created: `AGENTS.md`, `README.md`, `.gitignore`, `LICENSE`, `docs/feasibility-report.md`, `docs/github-governance.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, and probe files.
 
 Files modified: none.
 
