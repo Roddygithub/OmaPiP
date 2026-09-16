@@ -1,10 +1,24 @@
 # Security policy
 
-OmaPiP is not yet released and currently contains only feasibility probes.
+OmaPiP runs as unsandboxed QML inside `omarchy-shell` and mirrors pixels from a
+Wayland window selected by the user. Marketplace checks are compatibility and
+static security-baseline checks; they are not a security audit, certification,
+or endorsement.
 
-Please report security issues privately through GitHub's **Report a
-vulnerability** link rather than opening a public issue. Do not include
-credentials, tokens, personal data, or private captures in reports.
+## Report a vulnerability
 
-The eventual plugin will run inside the unsandboxed `omarchy-shell` process;
-security-sensitive changes require explicit review of that boundary.
+Please use GitHub's private **Report a vulnerability** form:
+
+https://github.com/Roddygithub/OmaPiP/security/advisories/new
+
+Do not publish an exploit or include credentials, tokens, personal data, or
+private window captures in a public issue. Include the affected version or
+commit, environment, impact, and reproduction details only when safe.
+
+## V1 security boundaries
+
+- No network requests, authentication, secrets, temporary files, or capture persistence.
+- No sudo, package manager, service installation, helper, daemon, or portal.
+- No writes to `/usr/share/omarchy` or persistent Hyprland configuration.
+- Hyprland commands use validated compositor addresses and bounded numeric geometry.
+- Move and resize requests are native Wayland requests scoped to the OmaPiP viewer.
