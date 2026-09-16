@@ -325,7 +325,9 @@ Item {
       }
       MouseArea {
         anchors.fill: parent
-        visible: root.sourceUnavailable
+        z: 5
+        enabled: root.sourceUnavailable
+        acceptedButtons: Qt.LeftButton
         onClicked: root.chooseAnother()
       }
     }
