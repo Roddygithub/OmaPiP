@@ -2,7 +2,7 @@
 
 - **Version:** 0.1.0
 - **Environment:** Omarchy shell / Quickshell 0.3.1 / Hyprland 0.56.2
-- **Commit tested:** `c1e1f9d` (hardening branch; final documentation commit follows)
+- **Commit tested:** `0e1bcb3` (hardening branch)
 - **Validation date:** 2026-09-16
 
 ## Technical checks
@@ -54,6 +54,8 @@ final removal check reported no residual plugin directory.
 
 `V1_PRODUCTION_PARITY_COMPLETE: YES`
 
-`RELEASE_READY: PENDING FINAL HUMAN VALIDATION`
+`RELEASE_READY: YES`
 
-No tag, GitHub Release, or marketplace submission has been made.
+The final human validation confirmed cross-workspace visibility, z-order above
+normal windows, and the Close control. No tag, GitHub Release, or marketplace
+submission has been made.
