@@ -28,7 +28,7 @@ Wiki: ENABLED — left unchanged; no wiki content yet.
 
 Discussions: DISABLED — left unchanged; too early for a separate forum.
 
-License: HUMAN DECISION REQUIRED — no license selected or published.
+License: MIT — selected by the project owner and published in `LICENSE`.
 
 Merge methods: squash only. Merge commits and rebase merges disabled.
 
@@ -84,7 +84,7 @@ CODEOWNERS: NOT NEEDED YET — one owner and no review requirement; adding it no
 
 Dependabot: NOT NEEDED YET — no dependency manifest exists; no `.github/dependabot.yml` added.
 
-LICENSE: HUMAN DECISION REQUIRED — deliberately not created.
+LICENSE: USED — MIT license published after explicit owner approval.
 
 ## GIT HYGIENE
 
@@ -92,7 +92,7 @@ LICENSE: HUMAN DECISION REQUIRED — deliberately not created.
 
 Secrets check: PASS — repository contents and commits were scanned for obvious tokens/private keys; GitHub secret scanning and push protection are enabled.
 
-Commit metadata reviewed: PASS — commits expose the local Git identity `Roland Salardon <r.salardon@gmail.com>`. This is observed public metadata; changing it would rewrite history and was not done.
+Commit metadata reviewed: PASS — existing commits expose `Roland Salardon <r.salardon@gmail.com>`. Future commits in this repository now use the local-only GitHub noreply address `3160144+Roddygithub@users.noreply.github.com`; global Git configuration remains unchanged.
 
 Commit signing strategy: not configured; current commits are unsigned (`verification: null`). No signing setup changed. Consider SSH signing before a broader contribution phase.
 
@@ -116,27 +116,28 @@ Changes made:
 - Enabled squash-only merge strategy.
 - Added PR template and security policy.
 - Added concise Git/GitHub rules to `AGENTS.md`.
+- Published the owner-approved MIT license.
+- Configured the repository-local future commit email.
 
 Settings changed: repository merge methods, automatic branch deletion, Actions permission baseline, main ruleset.
 
-Files created: `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, `docs/github-governance.md`.
+Files created: `.github/PULL_REQUEST_TEMPLATE.md`, `SECURITY.md`, `LICENSE`, `docs/github-governance.md`, and additional probe files.
 
 Files modified: `AGENTS.md`.
 
-Commits created: one governance commit (after verification).
+Commits created: PR #1 squash-merged as `6e6c4cd`; this follow-up will be delivered through a new PR.
 
 Branch: `main` (governance commit was pushed directly before the new main ruleset was applied; future V1 work must use PRs).
 
-PR created: no — no feature change warranted a PR during repository setup.
+PR created: PR #1 was created, CI-free checks were empty, squash-merged, and its head branch was deleted. Follow-up license/probe changes must use another PR.
 
 GitHub checks: no workflows/checks currently exist.
 
-Known limitations: project GraphQL details unavailable without `read:project`; no CI yet; commits unsigned; no license; no multi-maintainer review policy; no destructive protection test performed.
+Known limitations: project GraphQL details unavailable without `read:project`; no CI yet; commits unsigned; no multi-maintainer review policy; no destructive protection test performed.
 
 Human decisions required:
 
-1. Choose a license before V1 attracts reuse: MIT (minimal permissive), Apache-2.0 (permissive with explicit patent grant), or GPL-3.0 (copyleft, derivative distribution stays GPL). Omarchy's local files inspected here do not establish a mandatory license for this new repository.
-2. Optionally decide whether to request `read:project` for a fuller Projects audit; no configuration change is needed for the current project.
+NONE — MIT was approved and published. A fuller Projects audit would require optional `read:project`, but no decision is needed for the current setup.
 
 `GITHUB_READY: YES`
 
