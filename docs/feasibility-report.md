@@ -319,6 +319,20 @@ The human gate closes the mouse, cursor, placement, pin, normal z-order, and int
 `HUMAN_UX_GATE_COMPLETE: YES`
 `READY_TO_IMPLEMENT: NO`
 
+## FINAL SOURCE IDENTITY GATE
+
+Date: 2026-09-16. A disposable source-identity probe was run in the real `omarchy-shell`. It separated the persistent `selectedAddress`, the currently resolved `HyprlandToplevel`, and availability. No fallback selection was permitted.
+
+- `STABLE_SOURCE_IDENTITY_AFTER_DESTRUCTION: PASS` — selected source A address `5610b1455750` remained unchanged after A disappeared; `resolvedAddress` became empty, `sourceUnavailable=true`, `captureSource` became null, `hasContent=false`, and the viewer remained open.
+- `NO_IMPLICIT_FALLBACK_SOURCE: PASS` — opening source B did not change the selected address or capture B.
+- `NO_IMPLICIT_RECONNECT_TO_NEW_ADDRESS: PASS` — a newly opened alternative source was not reconnected automatically. A separate relaunch attempt reused A's old compositor address, so it was not counted as evidence of a new-address case; the distinct-address B result is the valid observation.
+- `EXPLICIT_RESELECTION_RECOVERS: PASS` — explicitly selecting B changed `selectedAddress` and `resolvedAddress` to B, restored `sourceUnavailable=false` and live capture, without recreating the viewer.
+- `SOURCE_DESTRUCTION_EXPLICIT_STATE: PASS` — the required state machine is demonstrated by the corrected disposable probe.
+- `CLEANUP: PASS` — temporary source-identity plugin and test windows removed; `shell.json` restored to `990c7780e662f8b22b33933c5b4c900b9d4ae018ae39d9729693f1b408ddd9d2`; `omarchy-shell shell ping` returned `ok`; no probe installation remained; Git was clean before this report update.
+
+`SOURCE_IDENTITY_GATE_COMPLETE: YES`
+`READY_TO_IMPLEMENT: YES` — all required feasibility gates are now closed. The live geometric aspect-ratio lock remains an accepted limitation; multi-monitor and mixed-DPI remain environment-deferred.
+
 ## STOP CONDITION
 
 Arrêt volontaire avant toute implémentation V1. Les probes QML sont jetables et ne sont pas du code de production. Les probes supplémentaires `hyprland.qml` et `capture-hyprland.qml` ont confirmé l'absence de toplevels dans une instance Quickshell autonome, sans modifier Omarchy.
