@@ -91,6 +91,54 @@ Reusable pattern: release-only corner snap and ratio persistence are candidates 
 | fractional scaling | Fixture/pattern yes | PiP Handler; Floating Mode; srburk PiP | convert physical monitor dimensions to logical coordinates; preserve rounding | Medium | Yes in geometry probe; do not claim live support yet |
 | source selection | Yes | Screen Mirroring | desktop portal screen/window picker | Medium/high due portal/PipeWire/helper permissions | Optional UX probe only; not capture architecture |
 
+## Reconciliation with OmaPiP work
+
+The prior host-probe results remain historical facts. This audit does not convert any OmaPiP `FAIL` into `PASS`, and it does not replace the already passing in-process capture path.
+
+| Discovery | Impact classification | Reconciliation with existing work |
+|---|---|---|
+| Browser-PiP plugins match browser windows, not arbitrary toplevel captures | `CONFIRMS_EXISTING_DECISION` | Keep `Hyprland.toplevels` + `ScreencopyView`; do not fork browser-PiP matching. |
+| PiP Handler separates address matching, geometry, dispatch, and QML | `IMPROVES_EXISTING_APPROACH` | Keep the proposed thin plugin boundary; move only geometry/placement policy into a small focused unit. |
+| PiP Handler and srburk use explicit pin plus raise | `INVALIDATES_PREVIOUS_ASSUMPTION` | The report's unresolved above/pin items must be interpreted as unverified on OmaPiP, not as evidence that a helper or new capture path is needed. Use separate idempotent operations. |
+| Reserved-area/logical-scale/aspect math is already exercised by prior art | `IMPROVES_EXISTING_APPROACH` | Reuse the algorithmic pattern, but still run OmaPiP-specific checks; do not copy implementation or claim live multi-monitor support. |
+| Floating Mode's custom eight-way interaction is native Hyprland code | `REQUIRES_NEW_TARGETED_PROBE` | Test standard `resize_on_border` on OmaPiP before deciding whether `aero-snap`-style native code is required. |
+| `hyprbars` is titlebar drag, not eight-way resize | `INVALIDATES_PREVIOUS_ASSUMPTION` | A future probe must test titlebar/compositor drag and border resize separately. Installing or patching `hyprbars` is not automatically the answer. |
+| srburk's release-only snap does not implement resize/cursors | `REMOVES_NEED_FOR_PROBE` | Remove any plan to probe a custom continuous QML drag implementation; probe compositor drag plus release snapping instead. |
+| Screen Mirroring portal is for PipeWire remote streaming | `CONFIRMS_EXISTING_DECISION` | Portal selection is optional UX, not a replacement for local `ScreencopyView`. |
+| Prior art has fixtures but no equivalent OmaPiP mixed-monitor environment here | `NO_IMPACT` | Preserve `DEFERRED_ENVIRONMENT_LIMITATION`; fixture evidence cannot change the local environment result. |
+
+### Decisions retained
+
+- No V1 implementation until the feasibility gate is approved.
+- Omarchy third-party plugin in the real `omarchy-shell`.
+- `Hyprland.toplevels` identity and `ScreencopyView` capture.
+- `FloatingWindow` as the viewer surface.
+- No external helper currently required.
+- Multi-monitor and mixed-DPI remain environment-deferred.
+
+### Decisions changed or sharpened
+
+- The open mouse UX question is now explicitly split into **standard compositor capability** versus **custom native interception**. The first target is Hyprland configuration (`resize_on_border`, border grab area, cursor feedback), not QML hit testing.
+- `always-above` and all-workspaces pin remain live OmaPiP probes, but the implementation candidate is now explicit `pin` plus `alter_zorder(top)` rather than a vague “above” rule.
+- Automatic corner placement should use monitor-local logical work-area math and be applied after the viewer is mapped; it should not be conflated with interactive drag.
+- A portal is downgraded to an optional selection/consent experiment and must not enter the capture architecture without a concrete UX result.
+
+### Probes removed or no longer useful
+
+- A probe for a QML-only global move/resize implementation is unnecessary: Wayland client QML cannot reposition an independent toplevel globally without compositor cooperation.
+- A probe that substitutes PipeWire/portal capture for the already passing `ScreencopyView` path is unnecessary.
+- Generic browser-PiP title/class matching is unnecessary for OmaPiP's `HyprlandToplevel` source model.
+
+These removals do not remove the required OmaPiP host probes below; they narrow them.
+
+### Refined next probes
+
+1. **Surface interaction baseline:** on one real OmaPiP `FloatingWindow`, enable only standard Hyprland border resize and test left/right/top/bottom plus four corners, recording cursor names, actual geometry, minimum size, and whether capture/input remains live.
+2. **Move baseline:** test compositor/titlebar or `Super`+left-drag, then release; record whether the viewer moves continuously and whether source capture is unaffected.
+3. **Placement/ratio:** map a viewer with a known source aspect, compute bottom-right and bottom-left from current reserved work area, then resize while checking whether ratio is preserved by the chosen policy.
+4. **Stack/workspace:** use an independent fullscreen/normal-window visual test and switch workspaces; record `pin`, visibility, and z-order separately.
+5. **Only if 1 fails:** design one native Hyprland feasibility probe for the smallest required border interception. Do not build or import the Floating Mode module.
+
 ## Architecture check
 
 1. **Existing equivalent:** **No.** PiP Handler and srburk PiP are browser-PiP managers. OmaPiP mirrors arbitrary `HyprlandToplevel` sources with `ScreencopyView`; no audited plugin combines that source model with the requested UX.
@@ -100,6 +148,8 @@ Reusable pattern: release-only corner snap and ratio persistence are candidates 
 5. **Can all UX work without a custom Hyprland native component?** **Possibly, and this is the minimal path to test.** QML cannot move or resize a toplevel globally by itself: Wayland clients request compositor operations. However, Hyprland already owns normal move/resize and cursor feedback through its border/titlebar interaction, and Lua/IPC can handle initial placement and release snapping. A custom native module is required only if standard Hyprland border interaction is unavailable/insufficient for the particular `FloatingWindow` surface, or if OmaPiP insists on custom border hit zones and compositor-level cursor/drag interception. Floating Mode demonstrates that such interception is real, but not that it is necessary for OmaPiP.
 6. **Capture path:** **Yes, keep `ScreencopyView` as the primary path.** The portal is optional for selection consent only; Screen Mirroring's PipeWire/helper architecture solves a different remote-streaming problem.
 7. **Smallest realistic V1 design:** one Omarchy `panel`/service plugin with `FloatingWindow` + `ScreencopyView` + `Hyprland.toplevels`; source identity by toplevel/address; a small QML/JS geometry function for monitor work area, ratio and corners; Lua/Hyprland dispatch for float, pin, raise, initial resize and move; standard Hyprland `resize_on_border`/cursor behavior and either a native titlebar or compositor drag. Add a release-only corner snap only if the drag probe confirms it is useful. Do not add a helper, portal, custom native module, hyprbars patch, global floating mode, snap preview, or multi-monitor policy in V1.
+8. **Previous decisions to retain:** the host-only Omarchy plugin boundary, in-process `ScreencopyView` capture, `FloatingWindow`, no helper, and deferred multi-monitor/mixed-DPI status remain correct.
+9. **Previous decisions to modify:** replace the broad “mouse UX blocker” with the two-stage standard-compositor-then-native decision; treat pin and raise as separate operations; remove QML-only drag and portal-capture probes.
 
 ## Audit conclusion
 
