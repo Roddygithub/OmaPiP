@@ -29,6 +29,7 @@ Ui.BarWidget {
   function chooseAnother() { if (panelLoader.item) panelLoader.item.chooseAnother() }
   function placeBottomLeft() { if (panelLoader.item) panelLoader.item.placeBottomLeft() }
   function placeBottomRight() { if (panelLoader.item) panelLoader.item.placeBottomRight() }
+  function cycleDisplayMode() { if (panelLoader.item) panelLoader.item.cycleDisplayMode() }
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -45,6 +46,13 @@ Ui.BarWidget {
     function open(): void { root.open() }
     function close(): void { root.close() }
     function toggle(): void { root.toggle() }
+    function status(): string { return root.status() }
+    function sources(): string { return root.sources() }
+    function select(address: string): string { return root.select(address) }
+    function chooseAnother(): void { root.chooseAnother() }
+    function placeBottomLeft(): void { root.placeBottomLeft() }
+    function placeBottomRight(): void { root.placeBottomRight() }
+    function cycleDisplayMode(): void { root.cycleDisplayMode() }
   }
 
   Ui.BarIconButton {
