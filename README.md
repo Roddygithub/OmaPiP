@@ -53,10 +53,12 @@ omarchy plugin disable io.github.roddygithub.omapip
 omarchy plugin remove io.github.roddygithub.omapip --yes
 ```
 
-## V1 limitations
+## Current limitations
 
-- `LIVE_GEOMETRIC_ASPECT_LOCK: NOT_SUPPORTED_V1`
 - `MULTI_MONITOR_VALIDATION: DEFERRED`
 - `MIXED_DPI_VALIDATION: DEFERRED`
 
-The capture is aspect-fit and may show letterboxing while the viewer is resized.
+The viewer is freely resizable and defaults to **Fill**: the source keeps
+its aspect ratio and is cropped as needed to cover the PiP. **Fit** shows
+the full source and may letterbox, while **Stretch** fills the PiP by
+allowing distortion.

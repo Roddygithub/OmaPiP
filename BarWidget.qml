@@ -30,7 +30,6 @@ Ui.BarWidget {
   function placeBottomLeft() { if (panelLoader.item) panelLoader.item.placeBottomLeft() }
   function placeBottomRight() { if (panelLoader.item) panelLoader.item.placeBottomRight() }
   function cycleDisplayMode() { if (panelLoader.item) panelLoader.item.cycleDisplayMode() }
-  function debugGeometry() { return panelLoader.item ? panelLoader.item.debugGeometry() : "{}" }
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -54,7 +53,6 @@ Ui.BarWidget {
     function placeBottomLeft(): void { root.placeBottomLeft() }
     function placeBottomRight(): void { root.placeBottomRight() }
     function cycleDisplayMode(): void { root.cycleDisplayMode() }
-    function debugGeometry(): string { return root.debugGeometry() }
   }
 
   Ui.BarIconButton {

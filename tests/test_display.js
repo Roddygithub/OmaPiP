@@ -1,5 +1,6 @@
 // Unit tests for OmaPiP v0.1.2 display/geometry logic.
-// Ported exactly from Panel.qml: freeform resize + Fill/Fit/Stretch sizing.
+// Display sizing mirrors Panel.qml; free-resize math models the intended
+// ratio-free behavior, while native compositor resize is human-validated live.
 // Run: node tests/test_display.js
 
 let passed = 0
@@ -12,7 +13,7 @@ function assertClose(a, b, msg, eps) {
   assert(Math.abs(a - b) <= eps, msg + ' (got ' + a + ', expected ~' + b + ')')
 }
 
-// ---- Freeform resize (applyFreeResize) : 8 edges, NO aspect-ratio lock ----
+// ---- Freeform resize model: 8 edges, NO aspect-ratio lock ----
 // Edge indices: 0=top,1=right,2=bottom,3=left,4=top-left,5=top-right,6=bottom-left,7=bottom-right
 function freeResize(edgeIdx, dx, dy, oldW, oldH, oldX, oldY) {
   var newW = oldW, newH = oldH, newX = oldX, newY = oldY
