@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.roddygithub.omapip",
   "name": "OmaPiP",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Roddy Salardon",
   "license": "MIT",
   "description": "Live Picture-in-Picture mirror for any Wayland window.",

@@ -30,10 +30,10 @@ omarchy-shell shell summon io.github.roddygithub.omapip
 
 ## Viewer controls
 
-- **Left click + drag** moves the viewer without `Super`.
-- Drag any edge or corner to resize; Hyprland supplies the directional cursor.
+- **Left click + drag** moves the viewer freely; it is the normal way to position it.
+- Drag any edge or corner to resize freely; Hyprland supplies the directional cursor.
+- **Fill/Fit/Stretch** cycles the display mode (Fill = crop to cover, Fit = letterbox, Stretch = fill/distort).
 - **Choose** reopens the source picker while capture continues.
-- **Left** and **Right** place the viewer in the corresponding bottom corner.
 - **Close** closes only OmaPiP, not the source window.
 - If the source is destroyed, click **Choose another window** to reselect it.
 

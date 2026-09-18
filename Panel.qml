@@ -14,9 +14,17 @@ Item {
   property bool pickerVisible: false
   property bool viewerVisible: false
   property bool viewerConfigured: false
+  property bool viewerHovered: false
+  property bool controlsHovered: false
+  property bool controlsVisible: false
+  readonly property int controlsHideDelay: 280
+  property int displayMode: 0  // 0 = Fill, 1 = Fit, 2 = Stretch
   readonly property string viewerTitle: "OmaPiP Viewer — io.github.roddygithub.omapip"
   readonly property string pickerTitle: "OmaPiP Picker — io.github.roddygithub.omapip"
   readonly property bool sourceUnavailable: selectedAddress !== "" && resolvedToplevel === null
+  readonly property int modeFill: 0
+  readonly property int modeFit: 1
+  readonly property int modeStretch: 2
 
   function boundedText(value, limit) {
     return String(value || "").slice(0, limit)
@@ -70,6 +78,32 @@ Item {
     root.pickerVisible = true
   }
 
+  function cycleDisplayMode() {
+    root.displayMode = (root.displayMode + 1) % 3
+    updateScreencopyViewGeometry()
+  }
+
+  function displayModeName() {
+    if (root.displayMode === root.modeFill) return "Fill"
+    if (root.displayMode === root.modeFit) return "Fit"
+    return "Stretch"
+  }
+
+  // Hover model: keep the toolbar visible while the pointer is over the
+  // content OR over the toolbar itself. It fades out only after the pointer
+  // leaves BOTH, using a short delay to avoid flicker when crossing to buttons.
+  function evaluateControlsVisibility() {
+    if (root.viewerHovered || root.controlsHovered) {
+      controlsHideTimer.stop()
+      root.controlsVisible = true
+    } else {
+      controlsHideTimer.restart()
+    }
+  }
+
+  onViewerHoveredChanged: root.evaluateControlsVisibility()
+  onControlsHoveredChanged: root.evaluateControlsVisibility()
+
   function placeBottomRight() { placeAt(false) }
   function placeBottomLeft() { placeAt(true) }
 
@@ -107,7 +141,6 @@ Item {
       root.selectedAddress = wanted
       root.resolvedToplevel = list[i]
       root.pickerVisible = false
-      root.viewerConfigured = false
       root.viewerVisible = true
       return "selected"
     }
@@ -116,24 +149,37 @@ Item {
 
   function sources() {
     return JSON.stringify(root.sourceEntries.map(function(t) {
-      return {
-        address: t.address,
-        title: t.title,
-        appId: t.appId
-      }
+      return { address: t.address, title: t.title, appId: t.appId }
     }))
   }
 
   function status() {
+    var ww = viewerWindow.width || 0
+    var wh = viewerWindow.height || 0
+    var sw = screencopyView.sourceSize ? screencopyView.sourceSize.width : 0
+    var sh = screencopyView.sourceSize ? screencopyView.sourceSize.height : 0
+    var rt = root.resolvedToplevel
+    var waylandObj = rt ? rt.wayland : null
+    var captureSourceObj = screencopyView.captureSource
     return JSON.stringify({
       selectedAddress: root.selectedAddress,
-      resolvedAddress: root.resolvedToplevel ? root.resolvedToplevel.address : "",
+      resolvedAddress: rt ? rt.address : "",
       sourceUnavailable: root.sourceUnavailable,
       pickerVisible: root.pickerVisible,
       viewerVisible: root.viewerVisible,
       viewerConfigured: root.viewerConfigured,
-      hasContent: viewer.hasContent,
-      sourceSize: viewer.sourceSize.width + "x" + viewer.sourceSize.height
+      hasContent: screencopyView.hasContent,
+      sourceSize: sw + "x" + sh,
+      winSize: ww + "x" + wh,
+      winAR: wh > 0 ? (ww / wh).toFixed(3) : "0",
+      sourceAR: sh > 0 ? (sw / sh).toFixed(3) : "0",
+      displayMode: root.displayModeName(),
+      resolvedToplevelPresent: rt !== null,
+      resolvedToplevelWaylandPresent: waylandObj !== null,
+      waylandAppId: waylandObj ? waylandObj.appId : "",
+      captureSourceMatches: captureSourceObj === waylandObj,
+      captureSourcePresent: captureSourceObj !== null,
+      viewSize: Math.round(screencopyView.width) + "x" + Math.round(screencopyView.height)
     })
   }
 
@@ -144,14 +190,29 @@ Item {
     return ""
   }
 
+  function computeInitialSize() {
+    var monitor = Hyprland.focusedMonitor
+    if (!monitor) return { w: 560, h: 315 }
+    var mw = root.boundedNumber(monitor.width, 1920, 160, 10000)
+    var mh = root.boundedNumber(monitor.height, 1080, 90, 10000)
+    var maxW = Math.round(mw * 0.35)
+    var maxH = Math.round(mh * 0.35)
+    var w = Math.min(560, maxW)
+    var h = Math.min(315, maxH)
+    if (w < 240) w = 240
+    if (h < 135) h = 135
+    return { w: w, h: h }
+  }
+
   function configureViewer() {
     var address = viewerAddress()
     if (address === "") return
     if (!root.validAddress(address)) return
     var selector = "address:0x" + address
+    var size = root.computeInitialSize()
+    var width = size.w
+    var height = size.h
     var monitor = Hyprland.focusedMonitor
-    var width = 640
-    var height = 360
     var reserved = monitor && monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
     var rightReserved = root.boundedNumber(reserved[2], 0, 0, 10000)
     var bottomReserved = root.boundedNumber(reserved[3], 0, 0, 10000)
@@ -170,6 +231,74 @@ Item {
     ]
     Quickshell.execDetached(["hyprctl", "--batch", commands.join("; ")])
     root.viewerConfigured = true
+  }
+
+  function updateScreencopyViewGeometry() {
+    if (!screencopyView.sourceSize || screencopyView.sourceSize.width <= 0 || screencopyView.sourceSize.height <= 0) return
+    var vw = viewerContainer.width
+    var vh = viewerContainer.height
+    var sw = screencopyView.sourceSize.width
+    var sh = screencopyView.sourceSize.height
+    if (vw <= 0 || vh <= 0) return
+
+    var mode = root.displayMode
+    var newW, newH
+
+    if (mode === root.modeStretch) {
+      newW = vw
+      newH = vh
+    } else {
+      var sourceAR = sw / sh
+      var viewerAR = vw / vh
+      if (mode === root.modeFill) {
+        // Cover: scale to cover entire viewer
+        if (sourceAR > viewerAR) {
+          // Source wider relative to viewer: fit height, crop width
+          newH = vh
+          newW = vh * sourceAR
+        } else {
+          // Source taller relative to viewer: fit width, crop height
+          newW = vw
+          newH = vw / sourceAR
+        }
+      } else { // MODE_FIT
+        // Contain: fit entire source in viewer
+        if (sourceAR > viewerAR) {
+          // Source wider: fit width, letterbox height
+          newW = vw
+          newH = vw / sourceAR
+        } else {
+          // Source taller: fit height, letterbox width
+          newH = vh
+          newW = vh * sourceAR
+        }
+      }
+    }
+
+    screencopyView.width = Math.round(newW)
+    screencopyView.height = Math.round(newH)
+  }
+
+  Connections {
+    target: screencopyView
+    function onSourceSizeChanged() {
+      updateScreencopyViewGeometry()
+    }
+  }
+
+  // Recompute Fill/Fit/Stretch when the PiP window is resized (native resize
+  // changes viewerContainer freely, and the view size must follow).
+  Connections {
+    target: viewerContainer
+    function onWidthChanged() { updateScreencopyViewGeometry() }
+    function onHeightChanged() { updateScreencopyViewGeometry() }
+  }
+
+  Timer {
+    id: controlsHideTimer
+    interval: root.controlsHideDelay
+    repeat: false
+    onTriggered: root.controlsVisible = false
   }
 
   Timer {
@@ -271,66 +400,77 @@ Item {
     visible: root.viewerVisible
     title: root.viewerTitle
     color: "#000000"
-    implicitWidth: 640
-    implicitHeight: 360
+    implicitWidth: 560
+    implicitHeight: 315
     minimumSize: Qt.size(160, 90)
 
     Rectangle {
+      id: viewerContainer
       anchors.fill: parent
       color: "#000000"
+      clip: true
+
+      ScreencopyView {
+        id: screencopyView
+        anchors.centerIn: parent
+        width: 1
+        height: 1
+        captureSource: root.resolvedToplevel ? root.resolvedToplevel.wayland : null
+        live: true
+        paintCursor: false
+      }
     }
 
-    ScreencopyView {
-      id: viewer
-      anchors.centerIn: parent
-      width: sourceSize.width > 0
-        ? Math.min(parent.width, parent.height * sourceSize.width / sourceSize.height)
-        : parent.width
-      height: sourceSize.width > 0
-        ? Math.min(parent.height, parent.width * sourceSize.height / sourceSize.width)
-        : parent.height
-      captureSource: root.resolvedToplevel ? root.resolvedToplevel.wayland : null
-      live: true
-      paintCursor: false
-    }
-
-    Rectangle {
-      anchors.top: parent.top
-      anchors.left: parent.left
-      anchors.right: parent.right
-      height: Math.max(0, (parent.height - viewer.height) / 2)
-      z: 1.5
-      color: "#000000"
-    }
-    Rectangle {
-      anchors.bottom: parent.bottom
-      anchors.left: parent.left
-      anchors.right: parent.right
-      height: Math.max(0, (parent.height - viewer.height) / 2)
-      z: 1.5
-      color: "#000000"
-    }
-
+    // Body interaction: hover source + move + right-click (Choose).
     MouseArea {
       anchors.fill: parent
       z: 1
+      hoverEnabled: true
       acceptedButtons: Qt.LeftButton | Qt.RightButton
+      onEntered: root.viewerHovered = true
+      onExited: root.viewerHovered = false
       onPressed: function(event) {
         if (event.button === Qt.RightButton) root.chooseAnother()
         else viewerWindow.startSystemMove()
       }
     }
 
-    // Native Wayland resize requests are scoped to this surface and preserve
-    // Hyprland's directional cursor and border behavior.
-    MouseArea { x: 0; y: 12; width: 10; height: parent.height - 24; z: 2; hoverEnabled: true; cursorShape: Qt.SizeHorCursor; onPressed: viewerWindow.startSystemResize(Qt.LeftEdge) }
-    MouseArea { x: parent.width - 10; y: 12; width: 10; height: parent.height - 24; z: 2; hoverEnabled: true; cursorShape: Qt.SizeHorCursor; onPressed: viewerWindow.startSystemResize(Qt.RightEdge) }
-    MouseArea { x: 12; y: 0; width: parent.width - 24; height: 10; z: 2; hoverEnabled: true; cursorShape: Qt.SizeVerCursor; onPressed: viewerWindow.startSystemResize(Qt.TopEdge) }
-    MouseArea { x: 12; y: parent.height - 10; width: parent.width - 24; height: 10; z: 2; hoverEnabled: true; cursorShape: Qt.SizeVerCursor; onPressed: viewerWindow.startSystemResize(Qt.BottomEdge) }
-    MouseArea { x: 0; y: 0; width: 12; height: 12; z: 3; hoverEnabled: true; cursorShape: Qt.SizeFDiagCursor; onPressed: viewerWindow.startSystemResize(Qt.TopEdge | Qt.LeftEdge) }
-    MouseArea { x: parent.width - 12; y: 0; width: 12; height: 12; z: 3; hoverEnabled: true; cursorShape: Qt.SizeBDiagCursor; onPressed: viewerWindow.startSystemResize(Qt.TopEdge | Qt.RightEdge) }
-    MouseArea { x: 0; y: parent.height - 12; width: 12; height: 12; z: 3; hoverEnabled: true; cursorShape: Qt.SizeBDiagCursor; onPressed: viewerWindow.startSystemResize(Qt.BottomEdge | Qt.LeftEdge) }
-    MouseArea { x: parent.width - 12; y: parent.height - 12; width: 12; height: 12; z: 3; hoverEnabled: true; cursorShape: Qt.SizeFDiagCursor; onPressed: viewerWindow.startSystemResize(Qt.BottomEdge | Qt.RightEdge) }
+    // Native freeform resize: the compositor handles the drag, so geometry
+    // always tracks the mouse and never fights a ratio-lock. Cursors come
+    // from a passive HoverHandler so the edges stay hover-transparent and
+    // never fade the controls while approaching them.
+    MouseArea { x: 0; y: 12; width: 10; height: parent.height - 24; z: 2; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeHorCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.LeftEdge)
+    }
+    MouseArea { x: parent.width - 10; y: 12; width: 10; height: parent.height - 24; z: 2; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeHorCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.RightEdge)
+    }
+    MouseArea { x: 12; y: 0; width: parent.width - 24; height: 10; z: 2; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeVerCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.TopEdge)
+    }
+    MouseArea { x: 12; y: parent.height - 10; width: parent.width - 24; height: 10; z: 2; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeVerCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.BottomEdge)
+    }
+    MouseArea { x: 0; y: 0; width: 12; height: 12; z: 3; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeFDiagCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.TopEdge | Qt.LeftEdge)
+    }
+    MouseArea { x: parent.width - 12; y: 0; width: 12; height: 12; z: 3; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeBDiagCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.TopEdge | Qt.RightEdge)
+    }
+    MouseArea { x: 0; y: parent.height - 12; width: 12; height: 12; z: 3; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeBDiagCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.BottomEdge | Qt.LeftEdge)
+    }
+    MouseArea { x: parent.width - 12; y: parent.height - 12; width: 12; height: 12; z: 3; hoverEnabled: false
+      HoverHandler { cursorShape: Qt.SizeFDiagCursor }
+      onPressed: viewerWindow.startSystemResize(Qt.BottomEdge | Qt.RightEdge)
+    }
 
     Rectangle {
       id: controls
@@ -342,28 +482,43 @@ Item {
       height: 28
       color: "#cc151515"
       radius: 4
+      opacity: root.controlsVisible ? 1.0 : 0.0
+      visible: opacity > 0
+      Behavior on opacity {
+        NumberAnimation { duration: root.viewerHovered || root.controlsHovered ? 120 : 175 }
+      }
+
+      // Track hover over the toolbar itself so it stays visible while the
+      // pointer is here, independently of the content area.
+      HoverHandler {
+        id: controlsHoverArea
+        onHoveredChanged: root.controlsHovered = controlsHoverArea.hovered
+      }
+
       Row {
         id: controlsRow
         anchors.centerIn: parent
         spacing: 4
         Repeater {
-          model: ["Choose", "Left", "Right", "Close"]
+          model: ["Fill", "Choose", "Close"]
           delegate: Rectangle {
             id: controlDelegate
             required property string modelData
             width: label.implicitWidth + 12
             height: 20
             radius: 3
-            color: buttonMouse.containsMouse ? "#555555" : "#333333"
-            Text { id: label; anchors.centerIn: parent; text: controlDelegate.modelData; color: "#ffffff"; font.pixelSize: 11 }
+            // Passive HoverHandler drives the highlight; it does NOT steal
+            // hover from the parent overlay, so the controls stay visible.
+            color: hover.hovered ? "#555555" : "#333333"
+            Text { id: label; anchors.centerIn: parent; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : controlDelegate.modelData; color: "#ffffff"; font.pixelSize: 11 }
+            HoverHandler { id: hover }
             MouseArea {
               id: buttonMouse
               anchors.fill: parent
-              hoverEnabled: true
+              hoverEnabled: false
               onClicked: {
-                if (controlDelegate.modelData === "Choose") root.chooseAnother()
-                else if (controlDelegate.modelData === "Left") root.placeBottomLeft()
-                else if (controlDelegate.modelData === "Right") root.placeBottomRight()
+                if (controlDelegate.modelData === "Fill") root.cycleDisplayMode()
+                else if (controlDelegate.modelData === "Choose") root.chooseAnother()
                 else root.close()
               }
             }
@@ -376,7 +531,7 @@ Item {
       id: unavailableBox
       anchors.centerIn: parent
       z: 4
-      visible: root.sourceUnavailable || !viewer.hasContent
+      visible: root.sourceUnavailable || !screencopyView.hasContent
       color: "#cc151515"
       radius: 4
       width: message.implicitWidth + 28
