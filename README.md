@@ -2,8 +2,6 @@
 
 Picture-in-Picture for any Wayland window on Omarchy.
 
-![OmaPiP Preview](preview.jpg)
-
 ## Why OmaPiP?
 
 Keep any window visible while you work — a video, a dashboard, a build log, a video call, or a reference document. The source window stays exactly where it is; OmaPiP mirrors it into a floating, always-on-top viewer that you can move, resize, and pin across workspaces.
@@ -20,7 +18,7 @@ Keep any window visible while you work — a video, a dashboard, a build log, a 
 - **Explicit unavailable-source handling** — clear prompt when the source window is closed
 - **No helper daemon** — runs entirely inside `omarchy-shell` as QML
 - **No administrator privileges** — user-level only
-- **No capture persistence** — pixels are never written to disk
+- **No capture persistence** — pixels are never written to disk by OmaPiP
 
 ## Quick Start
 
@@ -32,15 +30,9 @@ omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 2. Select a window from the picker
 3. Drag the viewer to position it
 4. Drag any edge or corner to resize freely
-4. Click **Fill** to cycle Fill → Fit → Stretch
-5. Click **Choose** to pick a different window
-6. Click **Close** to hide the viewer (source window is unaffected)
-
-## Screenshots
-
-| Main PiP View | Source Picker |
-|---------------|---------------|
-| ![Main PiP View](docs/assets/omapip-main.png) | ![Source Picker](docs/assets/source-picker.png) |
+5. Click **Fill** to cycle Fill → Fit → Stretch
+6. Click **Choose** to pick a different window
+7. Click **Close** to hide the viewer (source window is unaffected)
 
 ## Controls
 
@@ -66,10 +58,10 @@ The viewer keeps its geometry when switching sources or display modes.
 
 ## Requirements
 
-- Omarchy (Quattro or compatible plugin runtime)
+- Omarchy with the Quickshell plugin runtime
 - Hyprland
-- Quickshell
-- Wayland with `ScreencopyView` support (standard on modern Hyprland)
+- Quickshell with `ScreencopyView` support
+- A Wayland session
 
 No minimum versions are enforced beyond what Omarchy itself requires.
 
@@ -79,7 +71,7 @@ No minimum versions are enforced beyond what Omarchy itself requires.
 - No authentication, secrets, or credentials
 - No administrator privileges required
 - No external helper, daemon, or portal (PipeWire, xdg-desktop-portal)
-- Captured pixels are **not persisted to disk** — they exist only in GPU memory during the live mirror
+- Captured frames are not persisted to disk by OmaPiP
 - Selected Hyprland address is session state only; never written to config files
 
 See [SECURITY.md](SECURITY.md) for the vulnerability reporting policy and security boundaries.
@@ -149,7 +141,6 @@ manifest.json       # Omarchy plugin manifest
 tests/
   test_display.js   # 91 unit tests for geometry/display logic
 docs/
-  assets/           # Screenshots and preview image
   *.md              # Internal research docs (feasibility, ecosystem, validation)
 SECURITY.md         # Security policy and reporting
 LICENSE             # MIT

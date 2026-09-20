@@ -13,21 +13,24 @@ body:
       label: Omarchy Version
       description: Output of `omarchy --version` or channel/branch
       placeholder: "e.g., 2024.09 / stable"
-    required: true
+    validations:
+      required: true
   - type: input
     id: hyprland-version
     attributes:
       label: Hyprland Version
       description: Output of `hyprctl version`
       placeholder: "e.g., 0.45.0"
-    required: true
+    validations:
+      required: true
   - type: input
     id: quickshell-version
     attributes:
       label: Quickshell Version
       description: Output of `quickshell --version` or commit
       placeholder: "e.g., 0.14.0"
-    required: true
+    validations:
+      required: true
   - type: textarea
     id: steps
     attributes:
@@ -37,26 +40,30 @@ body:
         1. Open OmaPiP from bar
         2. Select a window
         3. ...
-    required: true
+    validations:
+      required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected Behavior
       description: What should happen?
-    required: true
+    validations:
+      required: true
   - type: textarea
     id: actual
     attributes:
       label: Actual Behavior
       description: What actually happens?
-    required: true
+    validations:
+      required: true
   - type: textarea
     id: logs
     attributes:
       label: Logs / Output
       description: Relevant logs, `hyprctl` output, or shell errors (if any)
       render: shell
-    required: false
+    validations:
+      required: false
   - type: dropdown
     id: multi-monitor
     attributes:
@@ -66,7 +73,8 @@ body:
         - "Yes"
         - "No"
         - "Not sure"
-    required: true
+    validations:
+      required: true
   - type: dropdown
     id: dpi
     attributes:
@@ -76,4 +84,5 @@ body:
         - "Yes"
         - "No"
         - "Not sure"
-    required: true
+    validations:
+      required: true
