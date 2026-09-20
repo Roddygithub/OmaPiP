@@ -26,7 +26,7 @@ Keep any window visible while you work — a video, a dashboard, a build log, a 
 omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 ```
 
-1. Click the **** OmaPiP icon in the right bar section
+1. Click the **OmaPiP** bar icon in the right section
 2. Select a window from the picker
 3. Drag the viewer to position it
 4. Drag any edge or corner to resize freely
