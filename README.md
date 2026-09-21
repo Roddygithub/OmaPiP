@@ -1,64 +1,182 @@
 # OmaPiP
 
-OmaPiP mirrors one selected Wayland window in a floating `ScreencopyView`
-inside `omarchy-shell`. It uses no helper, daemon, portal, or administrator privileges.
+Picture-in-Picture for any Wayland window on Omarchy.
 
-**External dependencies:** none beyond the standard Omarchy / Quickshell /
-Hyprland environment. OmaPiP does not persist window titles, app IDs, selected
-pixels, captures, credentials, or other window content to disk.
+## Why OmaPiP?
 
-## Install and open
+Keep any window visible while you work — a video, a dashboard, a build log, a video call, or a reference document. The source window stays exactly where it is; OmaPiP mirrors it into a floating, always-on-top viewer that you can move, resize, and pin across workspaces.
+
+## Features
+
+- **Any selectable Wayland window** — pick from a live list of open windows
+- **Native Omarchy bar widget** — one-click access from the bar
+- **Floating always-visible viewer** — pinned across workspaces, raised above normal windows
+- **Freeform move and resize** — drag anywhere to move; drag any edge or corner to resize (no aspect-ratio lock)
+- **Fill / Fit / Stretch rendering** — three display modes, cycled from the toolbar
+- **Change source without reopening** — *Choose* reopens the picker while capture continues
+- **Exact source identity** — tracked by Hyprland address, not fragile titles
+- **Explicit unavailable-source handling** — clear prompt when the source window is closed
+- **No helper daemon** — runs entirely inside `omarchy-shell` as QML
+- **No administrator privileges** — user-level only
+- **No capture persistence** — pixels are never written to disk by OmaPiP
+
+## Quick Start
 
 ```bash
 omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 ```
 
-The **** OmaPiP icon appears in the right bar section. Click it to open the
-source picker, then select a window. To move the widget using Omarchy's normal
-bar configuration:
+1. Click the **OmaPiP** bar icon in the right section
+2. Select a window from the picker
+3. Drag the viewer to position it
+4. Drag any edge or corner to resize freely
+5. Click **Fill** to cycle Fill → Fit → Stretch
+6. Click **Choose** to pick a different window
+7. Click **Close** to hide the viewer (source window is unaffected)
+
+## Controls
+
+| Action | Result |
+|--------|--------|
+| Left-click + drag on viewer | Move viewer freely (native compositor move) |
+| Drag any edge / corner | Resize freely (8 edges, native compositor resize) |
+| Click **Fill** button | Cycle display mode: Fill → Fit → Stretch |
+| Click **Choose** | Reopen source picker (capture continues) |
+| Click **Close** | Close viewer only; source window unaffected |
+| Right-click on viewer | Reopen source picker |
+| Source window destroyed | Toolbar shows "Choose another window" |
+
+## Display Modes
+
+| Mode | Behavior |
+|------|----------|
+| **Fill** (default) | Preserve aspect ratio, crop to cover the entire viewer (like `background-size: cover`) |
+| **Fit** | Preserve aspect ratio, show entire source; letterboxing may appear (like `background-size: contain`) |
+| **Stretch** | Fill viewer exactly; distortion possible |
+
+The viewer keeps its geometry when switching sources or display modes.
+
+## Requirements
+
+- Omarchy with the Quickshell plugin runtime
+- Hyprland
+- Quickshell with `ScreencopyView` support
+- A Wayland session
+
+No minimum versions are enforced beyond what Omarchy itself requires.
+
+## Privacy & Security
+
+- No network access from OmaPiP itself
+- No authentication, secrets, or credentials
+- No administrator privileges required
+- No external helper, daemon, or portal (PipeWire, xdg-desktop-portal)
+- Captured frames are not persisted to disk by OmaPiP
+- Selected Hyprland address is session state only; never written to config files
+
+See [SECURITY.md](SECURITY.md) for the vulnerability reporting policy and security boundaries.
+
+## Install / Update / Remove
 
 ```bash
-omarchy bar move io.github.roddygithub.omapip --section right
-```
+# Install and enable
+omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 
-The selected Hyprland address is retained only while the shell is running and
-is never replaced implicitly. The CLI remains available as a secondary path:
+# Update (when a new release is published)
+omarchy plugin update io.github.roddygithub.omapip --yes
 
-```bash
-omarchy-shell shell summon io.github.roddygithub.omapip
-```
-
-## Viewer controls
-
-- **Left click + drag** moves the viewer freely; it is the normal way to position it.
-- Drag any edge or corner to resize freely; Hyprland supplies the directional cursor.
-- **Fill/Fit/Stretch** cycles the display mode (Fill = crop to cover, Fit = letterbox, Stretch = fill/distort).
-- **Choose** reopens the source picker while capture continues.
-- **Close** closes only OmaPiP, not the source window.
-- If the source is destroyed, click **Choose another window** to reselect it.
-
-The viewer is floating, pinned across workspaces, raised above normal windows,
-and initially placed bottom-right inside the monitor's reserved work area.
-
-## Inspect state
-
-```bash
-omarchy-shell shell call io.github.roddygithub.omapip status ''
-```
-
-## Disable or uninstall
-
-```bash
+# Disable temporarily
 omarchy plugin disable io.github.roddygithub.omapip
+
+# Remove completely
 omarchy plugin remove io.github.roddygithub.omapip --yes
 ```
 
-## Current limitations
+## CLI / Advanced Use
 
-- `MULTI_MONITOR_VALIDATION: DEFERRED`
-- `MIXED_DPI_VALIDATION: DEFERRED`
+```bash
+# Summon via shell (secondary path)
+omarchy-shell shell summon io.github.roddygithub.omapip
 
-The viewer is freely resizable and defaults to **Fill**: the source keeps
-its aspect ratio and is cropped as needed to cover the PiP. **Fit** shows
-the full source and may letterbox, while **Stretch** fills the PiP by
-allowing distortion.
+# Inspect internal state (JSON)
+omarchy-shell shell call io.github.roddygithub.omapip status ''
+
+# List available sources (JSON)
+omarchy-shell shell call io.github.roddygithub.omapip sources ''
+
+# Select a specific Hyprland address
+omarchy-shell shell call io.github.roddygithub.omapip select '0x123456'
+
+# Reopen picker
+omarchy-shell shell call io.github.roddygithub.omapip chooseAnother ''
+
+# Programmatic placement
+omarchy-shell shell call io.github.roddygithub.omapip placeBottomLeft ''
+omarchy-shell shell call io.github.roddygithub.omapip placeBottomRight ''
+
+# Cycle display mode
+omarchy-shell shell call io.github.roddygithub.omapip cycleDisplayMode ''
+```
+
+## Known Limitations
+
+- Multi-monitor behavior has not yet received full validation
+- Mixed-DPI behavior has not yet received full validation
+
+## Compatibility & Status
+
+| Item | Status |
+|------|--------|
+| Current release | v0.1.2 |
+| Tests | 91 automated display/behavior tests |
+| GitHub Actions CI | Enabled (manifest + display tests) |
+| Marketplace | [Listed and verified](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
+
+## Project Structure
+
+```
+BarWidget.qml       # Bar widget entry point (Ui.BarWidget + IPC)
+Panel.qml           # Picker + viewer logic (FloatingWindow, ScreencopyView)
+manifest.json       # Omarchy plugin manifest
+tests/
+  test_display.js   # 91 unit tests for geometry/display logic
+docs/
+  *.md              # Internal research docs (feasibility, ecosystem, validation)
+SECURITY.md         # Security policy and reporting
+LICENSE             # MIT
+```
+
+## Development
+
+```bash
+# Run display tests
+node tests/test_display.js
+
+# Validate plugin manifest (on Omarchy)
+omarchy plugin validate .
+```
+
+## Contributing
+
+1. Fork and create a feature branch
+2. Make focused changes with clear commit messages
+3. Ensure `node tests/test_display.js` passes (91/91)
+4. Run `omarchy plugin validate .` locally if on Omarchy
+5. Open a PR against `main`
+
+No heavy framework, no boilerplate — small, reviewable diffs preferred.
+
+## Issues
+
+- **Bug reports**: Include Omarchy version, Hyprland version, Quickshell version, steps to reproduce, expected vs actual behavior, logs, and whether multi-monitor is in use
+- **Feature requests**: Describe the problem, proposed behavior, and any alternatives considered
+
+Issue templates are available in `.github/ISSUE_TEMPLATE/`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+*OmaPiP is a native Omarchy/Quickshell plugin. It is not affiliated with the Hyprland or Omarchy projects beyond using their public APIs.*
