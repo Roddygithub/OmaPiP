@@ -128,9 +128,9 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 | Item | Status |
 |------|--------|
 | Current release | v0.1.2 |
-| Tests | 91 automated display/behavior tests |
-| GitHub Actions CI | Enabled (manifest + display tests) |
-| Marketplace | [Listed; verification pending](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
+| Tests | 106 automated tests (91 display/behavior + 15 Phase A contract) |
+| GitHub Actions CI | Enabled (manifest + display + Phase A contract tests) |
+| Marketplace | [Listed and verified; newer preview snapshot awaiting verification](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
 
 ## Project Structure
 
@@ -139,7 +139,8 @@ BarWidget.qml       # Bar widget entry point (Ui.BarWidget + IPC)
 Panel.qml           # Picker + viewer logic (FloatingWindow, ScreencopyView)
 manifest.json       # Omarchy plugin manifest
 tests/
-  test_display.js   # 91 unit tests for geometry/display logic
+  test_display.js   # 91 display/geometry tests
+  test_phase_a.js   # 15 Phase A contract tests
 docs/
   *.md              # Internal research docs (feasibility, ecosystem, validation)
 SECURITY.md         # Security policy and reporting
@@ -149,8 +150,9 @@ LICENSE             # MIT
 ## Development
 
 ```bash
-# Run display tests
+# Run automated tests
 node tests/test_display.js
+node tests/test_phase_a.js
 
 # Validate plugin manifest (on Omarchy)
 omarchy plugin validate .
@@ -160,7 +162,7 @@ omarchy plugin validate .
 
 1. Fork and create a feature branch
 2. Make focused changes with clear commit messages
-3. Ensure `node tests/test_display.js` passes (91/91)
+3. Ensure `node tests/test_display.js` (91/91) and `node tests/test_phase_a.js` (15/15) pass
 4. Run `omarchy plugin validate .` locally if on Omarchy
 5. Open a PR against `main`
 
