@@ -130,7 +130,7 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 | Current release | v0.1.2 |
 | Tests | 91 automated display/behavior tests |
 | GitHub Actions CI | Enabled (manifest + display tests) |
-| Marketplace | [Listed and verified](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
+| Marketplace | [Listed; verification pending](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
 
 ## Project Structure
 
