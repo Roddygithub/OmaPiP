@@ -96,26 +96,26 @@ omarchy plugin remove io.github.roddygithub.omapip --yes
 
 ```bash
 # Summon via shell (secondary path)
-omarchy-shell shell summon io.github.roddygithub.omapip
+omarchy-shell shell summon io.github.roddygithub.omapip '{}'
 
 # Inspect internal state (JSON)
-omarchy-shell shell call io.github.roddygithub.omapip status ''
+omarchy-shell io.github.roddygithub.omapip status
 
 # List available sources (JSON)
-omarchy-shell shell call io.github.roddygithub.omapip sources ''
+omarchy-shell io.github.roddygithub.omapip sources
 
 # Select a specific Hyprland address (bare hex and 0x-prefixed forms are accepted)
-omarchy-shell shell call io.github.roddygithub.omapip select '0x123456'
+omarchy-shell io.github.roddygithub.omapip select '0x123456'
 
 # Reopen picker
-omarchy-shell shell call io.github.roddygithub.omapip chooseAnother ''
+omarchy-shell io.github.roddygithub.omapip chooseAnother
 
 # Programmatic placement
-omarchy-shell shell call io.github.roddygithub.omapip placeBottomLeft ''
-omarchy-shell shell call io.github.roddygithub.omapip placeBottomRight ''
+omarchy-shell io.github.roddygithub.omapip placeBottomLeft
+omarchy-shell io.github.roddygithub.omapip placeBottomRight
 
 # Cycle display mode
-omarchy-shell shell call io.github.roddygithub.omapip cycleDisplayMode ''
+omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 ```
 
 ## Known Limitations
