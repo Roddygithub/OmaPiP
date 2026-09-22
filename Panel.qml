@@ -245,14 +245,12 @@ Item {
 
   function cancelViewerConfiguration() {
     root.viewerConfigGeneration++
-    if (hyprctlProcess.running) {
-      root.hyprctlProcessReady = false
-      hyprctlProcess.running = false
-    }
-    if (verifyProcess.running) {
-      root.verifyProcessReady = false
-      verifyProcess.running = false
-    }
+    if (hyprctlProcess.running) hyprctlProcess.running = false
+    if (verifyProcess.running) verifyProcess.running = false
+    // Stopping a Process is cancellation, not a new busy operation. Restore
+    // readiness immediately; any late onExited callback is generation-guarded.
+    root.hyprctlProcessReady = true
+    root.verifyProcessReady = true
     root.viewerConfigPending = false
   }
 
