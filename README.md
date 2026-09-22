@@ -104,7 +104,7 @@ omarchy-shell shell call io.github.roddygithub.omapip status ''
 # List available sources (JSON)
 omarchy-shell shell call io.github.roddygithub.omapip sources ''
 
-# Select a specific Hyprland address
+# Select a specific Hyprland address (bare hex and 0x-prefixed forms are accepted)
 omarchy-shell shell call io.github.roddygithub.omapip select '0x123456'
 
 # Reopen picker

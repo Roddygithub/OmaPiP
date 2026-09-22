@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
@@ -14,6 +15,15 @@ Item {
   property bool pickerVisible: false
   property bool viewerVisible: false
   property bool viewerConfigured: false
+  property bool viewerConfigPending: false
+  property int viewerConfigAttempts: 0
+  property int viewerConfigGeneration: 0
+  property int activeConfigGeneration: 0
+  property bool hyprctlProcessReady: true
+  property bool verifyProcessReady: true
+  property string viewerConfigError: ""
+  readonly property int maxViewerConfigAttempts: 3
+  property bool sourceLost: false
   property bool viewerHovered: false
   property bool controlsHovered: false
   property bool controlsVisible: false
@@ -21,7 +31,8 @@ Item {
   property int displayMode: 0  // 0 = Fill, 1 = Fit, 2 = Stretch
   readonly property string viewerTitle: "OmaPiP Viewer — io.github.roddygithub.omapip"
   readonly property string pickerTitle: "OmaPiP Picker — io.github.roddygithub.omapip"
-  readonly property bool sourceUnavailable: selectedAddress !== "" && resolvedToplevel === null
+  readonly property bool sourceUnavailable: selectedAddress !== ""
+    && (sourceLost || resolvedToplevel === null)
   readonly property int modeFill: 0
   readonly property int modeFit: 1
   readonly property int modeStretch: 2
@@ -30,8 +41,21 @@ Item {
     return String(value || "").slice(0, limit)
   }
 
+  function normalizeAddress(value) {
+    var address = String(value || "").trim()
+    if (/^0x/i.test(address)) address = address.slice(2)
+    if (!/^[0-9a-fA-F]{1,16}$/.test(address)) return ""
+    return address.toLowerCase()
+  }
+
   function validAddress(value) {
-    return /^[0-9a-fA-F]{1,16}$/.test(String(value || ""))
+    return root.normalizeAddress(value) !== ""
+  }
+
+  function isCapturableSource(toplevel) {
+    if (!toplevel || !toplevel.wayland) return false
+    if (toplevel.title === root.viewerTitle || toplevel.title === root.pickerTitle) return false
+    return root.normalizeAddress(toplevel.address) !== ""
   }
 
   function boundedNumber(value, fallback, minimum, maximum) {
@@ -47,22 +71,24 @@ Item {
     var entries = []
     for (var i = 0; i < list.length; i++) {
       var toplevel = list[i]
-      if (toplevel.title === root.viewerTitle || toplevel.title === root.pickerTitle) continue
-      if (!root.validAddress(toplevel.address)) continue
+      if (!root.isCapturableSource(toplevel)) continue
+      var address = root.normalizeAddress(toplevel.address)
       entries.push({
-        address: toplevel.address,
+        address: address,
         title: root.boundedText(toplevel.title, 160),
-        appId: root.boundedText(toplevel.wayland ? toplevel.wayland.appId : "", 80)
+        appId: root.boundedText(toplevel.wayland.appId, 80)
       })
-      if (toplevel.address === root.selectedAddress) found = toplevel
+      if (!root.sourceLost && address === root.selectedAddress) found = toplevel
     }
+    if (root.selectedAddress !== "" && root.resolvedToplevel !== null && found === null)
+      root.sourceLost = true
     root.sourceEntries = entries
     root.resolvedToplevel = found
   }
 
   function open(payload) {
     root.refreshSource()
-    var address = String(payload || "").slice(0, 32).trim()
+    var address = String(payload || "").trim()
     if (address !== "" && root.select(address) === "selected") return
     root.pickerVisible = true
   }
@@ -70,6 +96,7 @@ Item {
   function close() {
     root.pickerVisible = false
     root.viewerVisible = false
+    root.cancelViewerConfiguration()
     root.viewerConfigured = false
   }
 
@@ -133,13 +160,20 @@ Item {
   }
 
   function select(address) {
-    var wanted = String(address || "").slice(0, 16)
-    if (!root.validAddress(wanted)) return "invalid-address"
+    var wanted = root.normalizeAddress(address)
+    if (wanted === "") return "invalid-address"
     var list = Hyprland.toplevels.values
     for (var i = 0; i < list.length; i++) {
-      if (list[i].address !== wanted) continue
+      var toplevel = list[i]
+      if (!root.isCapturableSource(toplevel)) continue
+      if (root.normalizeAddress(toplevel.address) !== wanted) continue
+      root.cancelViewerConfiguration()
       root.selectedAddress = wanted
-      root.resolvedToplevel = list[i]
+      root.resolvedToplevel = toplevel
+      root.sourceLost = false
+      root.viewerConfigured = false
+      root.viewerConfigAttempts = 0
+      root.viewerConfigError = ""
       root.pickerVisible = false
       root.viewerVisible = true
       return "selected"
@@ -163,11 +197,14 @@ Item {
     var captureSourceObj = screencopyView.captureSource
     return JSON.stringify({
       selectedAddress: root.selectedAddress,
-      resolvedAddress: rt ? rt.address : "",
+      resolvedAddress: rt ? root.normalizeAddress(rt.address) : "",
       sourceUnavailable: root.sourceUnavailable,
       pickerVisible: root.pickerVisible,
       viewerVisible: root.viewerVisible,
       viewerConfigured: root.viewerConfigured,
+      viewerConfigPending: root.viewerConfigPending,
+      viewerConfigAttempts: root.viewerConfigAttempts,
+      viewerConfigError: root.viewerConfigError,
       hasContent: screencopyView.hasContent,
       sourceSize: sw + "x" + sh,
       winSize: ww + "x" + wh,
@@ -185,8 +222,10 @@ Item {
 
   function viewerAddress() {
     var list = Hyprland.toplevels.values
-    for (var i = 0; i < list.length; i++)
-      if (list[i].title === root.viewerTitle && root.validAddress(list[i].address)) return list[i].address
+    for (var i = 0; i < list.length; i++) {
+      var address = root.normalizeAddress(list[i].address)
+      if (list[i].title === root.viewerTitle && address !== "") return address
+    }
     return ""
   }
 
@@ -204,10 +243,75 @@ Item {
     return { w: w, h: h }
   }
 
+  function cancelViewerConfiguration() {
+    root.viewerConfigGeneration++
+    if (hyprctlProcess.running) {
+      root.hyprctlProcessReady = false
+      hyprctlProcess.running = false
+    }
+    if (verifyProcess.running) {
+      root.verifyProcessReady = false
+      verifyProcess.running = false
+    }
+    root.viewerConfigPending = false
+  }
+
+  function timeoutViewerConfiguration() {
+    root.cancelViewerConfiguration()
+    root.viewerConfigError = "viewer configuration timed out"
+  }
+
+  function configurationClientMatches() {
+    var clients
+    try {
+      clients = JSON.parse(verifyOutput.text || "[]")
+    } catch (error) {
+      return false
+    }
+    var address = root.normalizeAddress(root.viewerAddress())
+    if (address === "" || !Array.isArray(clients)) return false
+    for (var i = 0; i < clients.length; i++) {
+      var client = clients[i]
+      if (root.normalizeAddress(client.address) !== address) continue
+      return client.floating === true && client.pinned === true
+    }
+    return false
+  }
+
+  function onConfigurationFailed() {
+    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    root.viewerConfigPending = false
+    root.viewerConfigError = "hyprctl configuration failed"
+  }
+
+  function onConfigurationExited(exitCode) {
+    root.hyprctlProcessReady = true
+    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    if (exitCode !== 0) {
+      root.onConfigurationFailed()
+      return
+    }
+    root.verifyProcessReady = false
+    verifyProcess.command = ["hyprctl", "clients", "-j"]
+    verifyProcess.running = true
+  }
+
+  function onVerificationExited(exitCode) {
+    root.verifyProcessReady = true
+    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    root.viewerConfigPending = false
+    if (exitCode === 0 && root.configurationClientMatches()) {
+      root.viewerConfigured = true
+      root.viewerConfigError = ""
+    } else {
+      root.viewerConfigError = "viewer configuration was not confirmed"
+    }
+  }
+
   function configureViewer() {
-    var address = viewerAddress()
-    if (address === "") return
-    if (!root.validAddress(address)) return
+    var address = root.normalizeAddress(root.viewerAddress())
+    if (address === "" || root.viewerConfigPending || root.viewerConfigAttempts >= root.maxViewerConfigAttempts
+        || !root.hyprctlProcessReady || !root.verifyProcessReady) return
     var selector = "address:0x" + address
     var size = root.computeInitialSize()
     var width = size.w
@@ -229,8 +333,13 @@ Item {
       "dispatch hl.dsp.window.resize({ x = " + width + ", y = " + height + ", window = \"" + selector + "\" })",
       "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y + ", window = \"" + selector + "\" })"
     ]
-    Quickshell.execDetached(["hyprctl", "--batch", commands.join("; ")])
-    root.viewerConfigured = true
+    root.viewerConfigAttempts++
+    root.activeConfigGeneration = root.viewerConfigGeneration
+    root.viewerConfigPending = true
+    root.viewerConfigError = ""
+    root.hyprctlProcessReady = false
+    hyprctlProcess.command = ["hyprctl", "--batch", commands.join("; ")]
+    hyprctlProcess.running = true
   }
 
   function updateScreencopyViewGeometry() {
@@ -301,9 +410,33 @@ Item {
     onTriggered: root.controlsVisible = false
   }
 
+  Process {
+    id: hyprctlProcess
+    onExited: function(exitCode) { root.onConfigurationExited(exitCode) }
+  }
+
+  Process {
+    id: verifyProcess
+    stdout: StdioCollector {
+      id: verifyOutput
+      waitForEnd: true
+    }
+    onExited: function(exitCode) { root.onVerificationExited(exitCode) }
+  }
+
+  Timer {
+    id: viewerConfigWatchdog
+    interval: 5000
+    running: root.viewerConfigPending
+    repeat: false
+    onTriggered: root.timeoutViewerConfiguration()
+  }
+
   Timer {
     interval: 300
     running: root.viewerVisible && !root.viewerConfigured
+      && !root.viewerConfigPending
+      && root.viewerConfigAttempts < root.maxViewerConfigAttempts
     repeat: true
     onTriggered: root.configureViewer()
   }
