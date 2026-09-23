@@ -31,3 +31,5 @@ jobs:
           node-version: 22
       - name: Run display tests
         run: node tests/test_display.js
+      - name: Run Phase A contract tests
+        run: node tests/test_phase_a.js
