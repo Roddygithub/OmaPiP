@@ -43,6 +43,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
             qt6-declarative-dev-tools \
-            qml6-module-qtqml-workerscript
+            qml6-module-qtqml-workerscript \
+            qml6-module-qtquick-window
       - name: Run shared QML logic tests
         run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests/qml
