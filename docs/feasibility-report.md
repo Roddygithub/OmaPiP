@@ -1,4 +1,6 @@
-# OmaPiP — rapport d'initialisation et faisabilité
+# Historical: OmaPiP — rapport d'initialisation et faisabilité
+
+> Document historique — cette étude précède l'implémentation actuelle et ne décrit pas l'état courant du projet.
 
 Date: 2026-09-16
 Périmètre: étude uniquement. Aucun plugin V1 n'est implémenté.

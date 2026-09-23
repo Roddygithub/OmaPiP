@@ -3,6 +3,9 @@
 // ratio-free behavior, while native compositor resize is human-validated live.
 // Run: node tests/test_display.js
 
+const Logic = require('./load_logic')
+const displaySize = Logic.displaySize
+
 let passed = 0
 let failed = 0
 function assert(cond, msg) {
@@ -56,26 +59,7 @@ r = freeResize(7, -1000, -1000, 560, 315, 0, 0)
 assert(r.w === 160, 'min width clamp to 160')
 assert(r.h === 90, 'min height clamp to 90')
 
-// ---- Display sizing (updateScreencopyViewGeometry) ----
-// vw,vh = viewer container ; sw,sh = source. Returns {w,h} rendered.
-function displaySize(mode, vw, vh, sw, sh) {
-  if (vw <= 0 || vh <= 0 || sw <= 0 || sh <= 0) return null
-  var sourceAR = sw / sh
-  var viewerAR = vw / vh
-  var newW, newH
-  if (mode === 2) { // STRETCH
-    newW = vw; newH = vh
-  } else {
-    if (mode === 0) { // FILL (cover)
-      if (sourceAR > viewerAR) { newH = vh; newW = vh * sourceAR }
-      else { newW = vw; newH = vw / sourceAR }
-    } else { // FIT (contain)
-      if (sourceAR > viewerAR) { newW = vw; newH = vw / sourceAR }
-      else { newH = vh; newW = vh * sourceAR }
-    }
-  }
-  return { w: Math.round(newW), h: Math.round(newH) }
-}
+// ---- Display sizing (shared with Panel.qml via PanelLogic.js) ----
 
 // B. FILL: source AR > viewer AR (wide source in portrait-ish box). Covers, crops width.
 r = displaySize(0, 560, 315, 2536, 1030)   // sourceAR 2.46 > 1.78
@@ -115,7 +99,6 @@ for (var sw = 300; sw <= 3000; sw += 100) {
 }
 
 // F. Mode default + cycle: 0=fill,1=fit,2=stretch, wraps to 0
-assert(0 === 0, 'default mode is fill (0)')               // Panel.qml property displayMode: 0
 var mode = 0
 var seq = []
 for (var i = 0; i < 6; i++) { mode = (mode + 1) % 3; seq.push(mode) }
@@ -151,16 +134,6 @@ assert(controlsVisible(false, false, true) === false, 'both left + delay elapsed
 pendingHide = true
 assert(controlsVisible(false, false, false) === true, 'both just left, delay pending -> still visible (no flicker)')
 pendingHide = false
-
-// ---- Toolbar contents: Left/Right removed ----
-function toolbarButtons(model) {
-  return model
-}
-var model = toolbarButtons(["Fill", "Choose", "Close"])
-assert(model.indexOf("Left") === -1, 'Left button removed from toolbar model')
-assert(model.indexOf("Right") === -1, 'Right button removed from toolbar model')
-assert(model.length === 3, 'toolbar has exactly 3 buttons')
-assert(model[0] === "Fill" && model[1] === "Choose" && model[2] === "Close", 'toolbar order Fill, Choose, Close')
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed')
 if (failed > 0) process.exit(1)

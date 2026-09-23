@@ -1,23 +1,13 @@
 // Focused Phase A contract tests. Runtime QML/Hyprland lifecycle remains live-tested.
+const Logic = require('./load_logic')
+const normalizeAddress = Logic.normalizeAddress
+const isCapturableSource = Logic.isCapturableSource
+
 let passed = 0
 let failed = 0
 function assert(condition, message) {
   if (condition) passed++
   else { failed++; console.error('FAIL: ' + message) }
-}
-
-function normalizeAddress(value) {
-  let address = String(value || '').trim()
-  if (/^0x/i.test(address)) address = address.slice(2)
-  if (!/^[0-9a-fA-F]{1,16}$/.test(address)) return ''
-  return address.toLowerCase()
-}
-
-function isCapturableSource(toplevel, viewerTitle, pickerTitle) {
-  return !!toplevel && !!toplevel.wayland
-    && toplevel.title !== viewerTitle
-    && toplevel.title !== pickerTitle
-    && normalizeAddress(toplevel.address) !== ''
 }
 
 assert(normalizeAddress('123ABC') === '123abc', 'raw hex is canonicalized')
