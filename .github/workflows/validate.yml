@@ -33,6 +33,8 @@ jobs:
         run: node tests/test_display.js
       - name: Run Phase A contract tests
         run: node tests/test_phase_a.js
+      - name: Run Phase C picker keyboard tests
+        run: node tests/test_phase_c.js
 
   qml-logic-tests:
     runs-on: ubuntu-24.04

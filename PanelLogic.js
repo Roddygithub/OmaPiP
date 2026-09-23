@@ -13,10 +13,27 @@ function isCapturableSource(toplevel, viewerTitle, pickerTitle) {
   return normalizeAddress(toplevel.address) !== ""
 }
 
+function indexForAddress(entries, address) {
+  var wanted = normalizeAddress(address)
+  if (wanted === "" || !entries) return -1
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i]
+    if (entry && normalizeAddress(entry.address) === wanted) return i
+  }
+  return -1
+}
+
 function boundedNumber(value, fallback, minimum, maximum) {
   var number = Number(value)
   if (!isFinite(number)) return fallback
   return Math.round(Math.max(minimum, Math.min(maximum, number)))
+}
+
+function boundedIndex(current, count) {
+  if (count <= 0) return -1
+  var index = Number(current)
+  if (!isFinite(index)) return 0
+  return Math.max(0, Math.min(count - 1, Math.round(index)))
 }
 
 function displaySize(mode, viewerWidth, viewerHeight, sourceWidth, sourceHeight) {

@@ -97,6 +97,35 @@ Item {
     root.pickerVisible = true
   }
 
+  function setPickerSelection(index) {
+    sourceList.currentIndex = Logic.boundedIndex(index, root.sourceEntries.length)
+  }
+
+  function movePickerSelection(delta) {
+    root.setPickerSelection(sourceList.currentIndex + delta)
+  }
+
+  function syncPickerSelection() {
+    root.setPickerSelection(Logic.indexForAddress(root.sourceEntries, root.selectedAddress))
+  }
+
+  function chooseFocusedSource() {
+    var entries = root.sourceEntries
+    var index = sourceList.currentIndex
+    if (index < 0 || index >= entries.length) return
+    root.select(entries[index].address)
+  }
+
+  function dismissPicker() {
+    root.pickerVisible = false
+  }
+
+  onPickerVisibleChanged: {
+    if (!root.pickerVisible) return
+    root.syncPickerSelection()
+    sourceList.forceActiveFocus()
+  }
+
   function cycleDisplayMode() {
     root.displayMode = (root.displayMode + 1) % 3
     updateScreencopyViewGeometry()
@@ -432,14 +461,33 @@ Item {
           model: root.sourceEntries
           clip: true
           spacing: 6
+          focus: true
+          keyNavigationEnabled: false
+          Accessible.role: Accessible.List
+          Accessible.name: "Capturable windows"
+
+          Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Escape) root.dismissPicker()
+            else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.chooseFocusedSource()
+            else if (event.key === Qt.Key_Down) root.movePickerSelection(1)
+            else if (event.key === Qt.Key_Up) root.movePickerSelection(-1)
+            else if (event.key === Qt.Key_Home) root.setPickerSelection(0)
+            else if (event.key === Qt.Key_End) root.setPickerSelection(root.sourceEntries.length - 1)
+            else { event.accepted = false; return }
+            event.accepted = true
+          }
 
           delegate: Rectangle {
             id: sourceDelegate
             required property var modelData
+            required property int index
             width: sourceList.width
             height: 54
             radius: 5
-            color: mouse.containsMouse ? "#3b3b3b" : "#252525"
+            color: mouse.containsMouse ? "#3b3b3b"
+              : (sourceDelegate.index === sourceList.currentIndex ? "#333333" : "#252525")
+            border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
+            border.color: "#6a6a6a"
 
             Text {
               anchors.left: parent.left
@@ -468,7 +516,10 @@ Item {
               id: mouse
               anchors.fill: parent
               hoverEnabled: true
-              onClicked: root.select(sourceDelegate.modelData.address)
+              onClicked: {
+                root.setPickerSelection(sourceDelegate.index)
+                root.select(sourceDelegate.modelData.address)
+              }
             }
           }
         }

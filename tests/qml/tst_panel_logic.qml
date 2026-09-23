@@ -43,4 +43,35 @@ TestCase {
         compare(size.w, 240)
         compare(size.h, 135)
     }
+
+    function test_boundedIndex() {
+        compare(Logic.boundedIndex(-1, 0), -1)
+        compare(Logic.boundedIndex(0, 0), -1)
+        compare(Logic.boundedIndex(3, 0), -1)
+        compare(Logic.boundedIndex(-1, 3), 0)
+        compare(Logic.boundedIndex(0 + 1, 3), 1)
+        compare(Logic.boundedIndex(2 + 1, 3), 2)
+        compare(Logic.boundedIndex(0 - 1, 3), 0)
+        compare(Logic.boundedIndex(99, 3), 2)
+        compare(Logic.boundedIndex(0, 3), 0)
+        compare(Logic.boundedIndex(3 - 1, 3), 2)
+        compare(Logic.boundedIndex(2, 2), 1)
+        compare(Logic.boundedIndex(0, 0), -1)
+    }
+
+    function test_indexForAddress() {
+        var entries = [
+            { address: "aaa", title: "Terminal", appId: "foot" },
+            { address: "bbb", title: "Browser", appId: "firefox" }
+        ]
+        compare(Logic.indexForAddress(entries, "bbb"), 1)
+        compare(Logic.indexForAddress(entries, "0xBBB"), 1)
+        compare(Logic.indexForAddress(entries, ""), -1)
+        compare(Logic.indexForAddress(entries, "ccc"), -1)
+        compare(Logic.indexForAddress(entries, "Browser"), -1)
+        compare(Logic.indexForAddress([], "bbb"), -1)
+        compare(Logic.indexForAddress(null, "bbb"), -1)
+        compare(Logic.boundedIndex(Logic.indexForAddress([], "bbb"), 0), -1)
+        compare(Logic.boundedIndex(Logic.indexForAddress(entries, "ccc"), entries.length), 0)
+    }
 }
