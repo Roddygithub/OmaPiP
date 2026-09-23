@@ -57,6 +57,19 @@ assert(indexForAddress(remaining, 'Editor') === -1, 'a title never matches an ad
 assert(indexForAddress([{ address: '', title: 'Editor', appId: 'nvim' }], '0ccc') === -1,
   'a blank address never matches')
 
+// source removal / current index repair: the keyboard anchor is re-resolved
+const shifted = [{ address: 'bbb', title: 'Browser', appId: 'firefox' },
+  { address: 'aaa', title: 'Terminal', appId: 'foot' },
+  { address: 'ccc', title: 'Editor', appId: 'nvim' }]
+const repairedIndex = Logic.repairedIndex
+assert(repairedIndex(0, 'ccc', shifted) === 2, 'repair follows the keyboard window after the list shifts')
+assert(repairedIndex(1, 'bbb', entries) === 1, 'repair keeps an anchor still in place')
+assert(repairedIndex(1, 'zzz', entries) === 1, 'repair keeps a valid position when the anchor is gone')
+assert(repairedIndex(5, 'zzz', entries) === 2, 'repair clamps a stale index when the anchor is gone')
+assert(repairedIndex(2, '', entries) === 2, 'repair ignores an empty anchor')
+assert(repairedIndex(2, 'aaa', []) === -1, 'repair selects nothing on an empty list')
+assert(repairedIndex(5, '', []) === -1, 'repair selects nothing on an empty list even when stale')
+
 let inBounds = true
 let index = boundedIndex(indexForAddress(entries, ''), count)
 for (let i = 0; i < 50; i++) {

@@ -133,7 +133,7 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 | Item | Status |
 |------|--------|
 | Current release | v0.1.2 |
-| Tests | 129 automated Node tests (86 display/behavior + 15 Phase A contract + 28 picker keyboard) plus Qt JavaScript-engine smoke tests |
+| Tests | 136 automated Node tests (86 display/behavior + 15 Phase A contract + 35 picker keyboard) plus Qt JavaScript-engine and QML key-delivery tests |
 | GitHub Actions CI | Enabled (manifest + display + Phase A contract + QML logic tests) |
 | Marketplace | [Listed and verified with the current marketplace preview](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
 
@@ -147,8 +147,8 @@ manifest.json       # Omarchy plugin manifest
 tests/
   test_display.js   # 86 display/geometry tests
   test_phase_a.js   # 15 Phase A contract tests
-  test_phase_c.js   # 28 picker keyboard contract tests
-  qml/              # Qt JavaScript-engine tests for shared logic
+  test_phase_c.js   # 35 picker keyboard contract tests
+  qml/              # Qt JavaScript-engine and key-delivery tests for shared logic
 docs/
   README.md         # Current vs historical documentation map
   *.md              # Research and validation archive
@@ -175,7 +175,7 @@ omarchy plugin validate .
 
 1. Fork and create a feature branch
 2. Make focused changes with clear commit messages
-3. Ensure the three Node suites (86/86, 15/15 and 28/28) and the Qt JavaScript-engine smoke tests pass
+3. Ensure the three Node suites (86/86, 15/15 and 35/35) and the Qt tests pass
 4. Run `omarchy plugin validate .` locally if on Omarchy
 5. Open a PR against `main`
 

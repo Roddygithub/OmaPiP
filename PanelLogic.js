@@ -36,6 +36,17 @@ function boundedIndex(current, count) {
   return Math.max(0, Math.min(count - 1, Math.round(index)))
 }
 
+// Keyboard selection is tracked by address, so list churn (sources appearing
+// or disappearing) re-resolves the same window instead of drifting with the
+// slot. Falls back to the clamped current index when the anchor is gone.
+function repairedIndex(current, anchorAddress, entries) {
+  var count = entries ? entries.length : 0
+  if (count <= 0) return -1
+  var index = indexForAddress(entries, anchorAddress)
+  if (index >= 0) return index
+  return boundedIndex(current, count)
+}
+
 function displaySize(mode, viewerWidth, viewerHeight, sourceWidth, sourceHeight) {
   if (viewerWidth <= 0 || viewerHeight <= 0 || sourceWidth <= 0 || sourceHeight <= 0) return null
   var sourceAR = sourceWidth / sourceHeight

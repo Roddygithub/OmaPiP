@@ -11,6 +11,7 @@ Item {
   id: root
 
   property string selectedAddress: ""
+  property string pickerAnchorAddress: ""
   property var resolvedToplevel: null
   property var sourceEntries: []
   property bool pickerVisible: false
@@ -82,7 +83,7 @@ Item {
     root.refreshSource()
     var address = String(payload || "").trim()
     if (address !== "" && root.select(address) === "selected") return
-    root.pickerVisible = true
+    root.showPicker()
   }
 
   function close() {
@@ -94,11 +95,19 @@ Item {
 
   function chooseAnother() {
     root.refreshSource()
+    root.showPicker()
+  }
+
+  function showPicker() {
+    root.syncPickerSelection()
     root.pickerVisible = true
+    sourceList.forceActiveFocus()
   }
 
   function setPickerSelection(index) {
-    sourceList.currentIndex = Logic.boundedIndex(index, root.sourceEntries.length)
+    var clamped = Logic.boundedIndex(index, root.sourceEntries.length)
+    sourceList.currentIndex = clamped
+    root.pickerAnchorAddress = clamped >= 0 ? root.sourceEntries[clamped].address : ""
   }
 
   function movePickerSelection(delta) {
@@ -107,6 +116,10 @@ Item {
 
   function syncPickerSelection() {
     root.setPickerSelection(Logic.indexForAddress(root.sourceEntries, root.selectedAddress))
+  }
+
+  function repairPickerSelection() {
+    root.setPickerSelection(Logic.repairedIndex(sourceList.currentIndex, root.pickerAnchorAddress, root.sourceEntries))
   }
 
   function chooseFocusedSource() {
@@ -120,11 +133,7 @@ Item {
     root.pickerVisible = false
   }
 
-  onPickerVisibleChanged: {
-    if (!root.pickerVisible) return
-    root.syncPickerSelection()
-    sourceList.forceActiveFocus()
-  }
+  onSourceEntriesChanged: if (root.pickerVisible) root.repairPickerSelection()
 
   function cycleDisplayMode() {
     root.displayMode = (root.displayMode + 1) % 3

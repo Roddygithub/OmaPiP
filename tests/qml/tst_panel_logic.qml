@@ -74,4 +74,25 @@ TestCase {
         compare(Logic.boundedIndex(Logic.indexForAddress([], "bbb"), 0), -1)
         compare(Logic.boundedIndex(Logic.indexForAddress(entries, "ccc"), entries.length), 0)
     }
+
+    function test_repairedIndex() {
+        var entries = [
+            { address: "aaa", title: "Terminal", appId: "foot" },
+            { address: "bbb", title: "Browser", appId: "firefox" },
+            { address: "ccc", title: "Editor", appId: "nvim" }
+        ]
+        var shifted = [
+            { address: "bbb", title: "Browser", appId: "firefox" },
+            { address: "aaa", title: "Terminal", appId: "foot" },
+            { address: "ccc", title: "Editor", appId: "nvim" }
+        ]
+        compare(Logic.repairedIndex(0, "ccc", shifted), 2)
+        compare(Logic.repairedIndex(1, "bbb", entries), 1)
+        compare(Logic.repairedIndex(1, "zzz", entries), 1)
+        compare(Logic.repairedIndex(5, "zzz", entries), 2)
+        compare(Logic.repairedIndex(2, "", entries), 2)
+        compare(Logic.repairedIndex(2, "aaa", []), -1)
+        compare(Logic.repairedIndex(5, "", []), -1)
+        compare(Logic.repairedIndex(-1, "aaa", entries), 0)
+    }
 }
