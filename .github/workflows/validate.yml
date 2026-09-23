@@ -33,3 +33,14 @@ jobs:
         run: node tests/test_display.js
       - name: Run Phase A contract tests
         run: node tests/test_phase_a.js
+
+  qml-logic-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt QML test runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y qt6-declarative-dev-tools
+      - name: Run shared QML logic tests
+        run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests/qml

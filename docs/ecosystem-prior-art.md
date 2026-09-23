@@ -1,4 +1,6 @@
-# OmaPiP ecosystem prior art audit
+# Historical: OmaPiP ecosystem prior art audit
+
+> Historical snapshot — research findings below are context, not the current product contract.
 
 Date: 2026-09-16
 Scope: prior art only. No OmaPiP V1 code was implemented.

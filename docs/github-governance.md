@@ -1,4 +1,7 @@
-# OmaPiP — GitHub governance
+# Historical: OmaPiP — GitHub governance
+
+> Historical snapshot — repository settings and workflow claims below reflect the recorded audit date, not necessarily the current GitHub state.
+
 
 ## GITHUB ENVIRONMENT
 

@@ -1,4 +1,7 @@
-# OmaPiP V1 production validation
+# Historical: OmaPiP V1 production validation
+
+> Historical snapshot — this records an earlier implementation state and is not current release validation.
+
 
 - **Version:** 0.1.0
 - **Environment:** Omarchy shell / Quickshell 0.3.1 / Hyprland 0.56.2
