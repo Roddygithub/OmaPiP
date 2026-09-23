@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "PanelLogic.js" as Logic
 
 Item {
   id: root
@@ -41,27 +42,18 @@ Item {
     return String(value || "").slice(0, limit)
   }
 
-  function normalizeAddress(value) {
-    var address = String(value || "").trim()
-    if (/^0x/i.test(address)) address = address.slice(2)
-    if (!/^[0-9a-fA-F]{1,16}$/.test(address)) return ""
-    return address.toLowerCase()
-  }
+  function normalizeAddress(value) { return Logic.normalizeAddress(value) }
 
   function validAddress(value) {
     return root.normalizeAddress(value) !== ""
   }
 
   function isCapturableSource(toplevel) {
-    if (!toplevel || !toplevel.wayland) return false
-    if (toplevel.title === root.viewerTitle || toplevel.title === root.pickerTitle) return false
-    return root.normalizeAddress(toplevel.address) !== ""
+    return Logic.isCapturableSource(toplevel, root.viewerTitle, root.pickerTitle)
   }
 
   function boundedNumber(value, fallback, minimum, maximum) {
-    var number = Number(value)
-    if (!Number.isFinite(number)) return fallback
-    return Math.round(Math.max(minimum, Math.min(maximum, number)))
+    return Logic.boundedNumber(value, fallback, minimum, maximum)
   }
 
   function refreshSource() {
@@ -231,16 +223,7 @@ Item {
 
   function computeInitialSize() {
     var monitor = Hyprland.focusedMonitor
-    if (!monitor) return { w: 560, h: 315 }
-    var mw = root.boundedNumber(monitor.width, 1920, 160, 10000)
-    var mh = root.boundedNumber(monitor.height, 1080, 90, 10000)
-    var maxW = Math.round(mw * 0.35)
-    var maxH = Math.round(mh * 0.35)
-    var w = Math.min(560, maxW)
-    var h = Math.min(315, maxH)
-    if (w < 240) w = 240
-    if (h < 135) h = 135
-    return { w: w, h: h }
+    return monitor ? Logic.initialViewerSize(monitor.width, monitor.height) : { w: 560, h: 315 }
   }
 
   function cancelViewerConfiguration() {
@@ -348,42 +331,9 @@ Item {
     var sh = screencopyView.sourceSize.height
     if (vw <= 0 || vh <= 0) return
 
-    var mode = root.displayMode
-    var newW, newH
-
-    if (mode === root.modeStretch) {
-      newW = vw
-      newH = vh
-    } else {
-      var sourceAR = sw / sh
-      var viewerAR = vw / vh
-      if (mode === root.modeFill) {
-        // Cover: scale to cover entire viewer
-        if (sourceAR > viewerAR) {
-          // Source wider relative to viewer: fit height, crop width
-          newH = vh
-          newW = vh * sourceAR
-        } else {
-          // Source taller relative to viewer: fit width, crop height
-          newW = vw
-          newH = vw / sourceAR
-        }
-      } else { // MODE_FIT
-        // Contain: fit entire source in viewer
-        if (sourceAR > viewerAR) {
-          // Source wider: fit width, letterbox height
-          newW = vw
-          newH = vw / sourceAR
-        } else {
-          // Source taller: fit height, letterbox width
-          newH = vh
-          newW = vh * sourceAR
-        }
-      }
-    }
-
-    screencopyView.width = Math.round(newW)
-    screencopyView.height = Math.round(newH)
+    var size = Logic.displaySize(root.displayMode, vw, vh, sw, sh)
+    screencopyView.width = size.w
+    screencopyView.height = size.h
   }
 
   Connections {
