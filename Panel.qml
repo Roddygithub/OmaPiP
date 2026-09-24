@@ -206,12 +206,13 @@ Item {
       var toplevel = list[i]
       if (!root.isCapturableSource(toplevel)) continue
       if (root.normalizeAddress(toplevel.address) !== wanted) continue
-      root.cancelViewerConfiguration()
+      if (!root.viewerVisible) root.cancelViewerConfiguration()
       root.selectedAddress = wanted
       root.resolvedToplevel = toplevel
       root.sourceLost = false
-      root.viewerConfigured = false
-      root.viewerConfigAttempts = 0
+      var configState = Logic.viewerConfigAfterSelect(root.viewerVisible, root.viewerConfigured, root.viewerConfigAttempts)
+      root.viewerConfigured = configState.configured
+      root.viewerConfigAttempts = configState.attempts
       root.viewerConfigError = ""
       root.pickerVisible = false
       root.pickerAnchorAddress = ""
