@@ -36,6 +36,7 @@ Item {
   property int displayMode: 0  // 0 = Fill, 1 = Fit, 2 = Stretch
   readonly property string viewerTitle: "OmaPiP Viewer — io.github.roddygithub.omapip"
   readonly property string pickerTitle: "OmaPiP Picker — io.github.roddygithub.omapip"
+  readonly property string viewerAppId: "org.quickshell"
   readonly property bool sourceUnavailable: selectedAddress !== ""
     && (sourceLost || resolvedToplevel === null)
   readonly property int modeFill: 0
@@ -266,7 +267,7 @@ Item {
     var list = Hyprland.toplevels.values
     for (var i = 0; i < list.length; i++) {
       var address = root.normalizeAddress(list[i].address)
-      if (list[i].title === root.viewerTitle && address !== "") return address
+      if (address !== "" && Logic.matchesViewer(list[i], root.viewerTitle, root.viewerAppId)) return address
     }
     return ""
   }
@@ -649,7 +650,9 @@ Item {
       anchors.top: parent.top
       anchors.right: parent.right
       anchors.margins: 8
-      z: 4
+      // Stack above unavailableBox: at minimum window size the centered box
+      // reaches the toolbar strip, and its click area must not swallow button hits.
+      z: 5
       width: controlsRow.implicitWidth + 8
       height: 28
       color: "#cc151515"
@@ -682,6 +685,10 @@ Item {
             // Passive HoverHandler drives the highlight; it does NOT steal
             // hover from the parent overlay, so the controls stay visible.
             color: hover.hovered ? "#555555" : "#333333"
+            Accessible.role: Accessible.Button
+            Accessible.name: controlDelegate.modelData === "Fill"
+              ? "Display mode: " + root.displayModeName()
+              : (controlDelegate.modelData === "Choose" ? "Choose another source" : "Close picture-in-picture")
             Text { id: label; anchors.centerIn: parent; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : controlDelegate.modelData; color: "#ffffff"; font.pixelSize: 11 }
             HoverHandler { id: hover }
             MouseArea {
@@ -714,6 +721,8 @@ Item {
         text: root.sourceUnavailable ? "Source unavailable — Choose another window" : "Waiting for capture…"
         color: "#ffffff"
         font.pixelSize: 14
+        Accessible.role: Accessible.StaticText
+        Accessible.name: message.text
       }
       MouseArea {
         anchors.fill: parent
