@@ -108,9 +108,4 @@ TestCase {
         verify(list.currentIndex >= 0 && list.currentIndex < list.count,
                "index is valid again once sources reappear")
     }
-
-    function test_99_cleanup() {
-        testCaseRoot.entries = [{ address: "aa", title: "A" }, { address: "bb", title: "B" }, { address: "cc", title: "C" }]
-        list.currentIndex = -1
-    }
 }
