@@ -27,6 +27,7 @@ Item {
   readonly property int maxViewerConfigAttempts: 3
   readonly property int maxPickerFocusAttempts: 20
   property int pickerFocusAttempts: 0
+  property bool pickerFocusEstablished: false
   property bool sourceLost: false
   property bool viewerHovered: false
   property bool controlsHovered: false
@@ -105,6 +106,7 @@ Item {
     root.syncPickerSelection()
     root.pickerVisible = true
     root.pickerFocusAttempts = 0
+    root.pickerFocusEstablished = false
     sourceList.forceActiveFocus()
     pickerFocusTimer.restart()
   }
@@ -136,6 +138,7 @@ Item {
 
   function dismissPicker() {
     root.pickerVisible = false
+    root.pickerAnchorAddress = ""
     pickerFocusTimer.stop()
   }
 
@@ -211,6 +214,7 @@ Item {
       root.viewerConfigAttempts = 0
       root.viewerConfigError = ""
       root.pickerVisible = false
+      root.pickerAnchorAddress = ""
       root.viewerVisible = true
       pickerFocusTimer.stop()
       return "selected"
@@ -412,7 +416,7 @@ Item {
     repeat: true
     running: false
     onTriggered: {
-      if (!root.pickerVisible || sourceList.activeFocus || root.pickerFocusAttempts >= root.maxPickerFocusAttempts) {
+      if (!root.pickerVisible || root.pickerFocusEstablished || root.pickerFocusAttempts >= root.maxPickerFocusAttempts) {
         pickerFocusTimer.stop()
         return
       }
@@ -510,6 +514,7 @@ Item {
             else { event.accepted = false; return }
             event.accepted = true
           }
+          onActiveFocusChanged: if (sourceList.activeFocus) root.pickerFocusEstablished = true
 
           delegate: Rectangle {
             id: sourceDelegate
@@ -519,7 +524,7 @@ Item {
             height: 54
             radius: 5
             color: mouse.containsMouse ? "#3b3b3b"
-              : (sourceDelegate.index === sourceList.currentIndex ? "#3f3f3f" : "#252525")
+              : (sourceDelegate.index === sourceList.currentIndex ? "#4a4a4a" : "#252525")
             border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
             border.color: "#8a8a8a"
 
