@@ -13,6 +13,16 @@ function isCapturableSource(toplevel, viewerTitle, pickerTitle) {
   return normalizeAddress(toplevel.address) !== ""
 }
 
+// The viewer is our own Quickshell window: match the exact title AND the
+// Quickshell app id so a foreign window cannot be configured by spoofing the
+// title alone (viewerAddress drives float/pin/resize/move).
+function matchesViewer(toplevel, viewerTitle, viewerAppId) {
+  if (!toplevel || !toplevel.wayland) return false
+  if (toplevel.title !== viewerTitle) return false
+  if (toplevel.wayland.appId !== viewerAppId) return false
+  return normalizeAddress(toplevel.address) !== ""
+}
+
 function indexForAddress(entries, address) {
   var wanted = normalizeAddress(address)
   if (wanted === "" || !entries) return -1

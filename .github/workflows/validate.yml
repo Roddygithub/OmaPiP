@@ -35,6 +35,8 @@ jobs:
         run: node tests/test_phase_a.js
       - name: Run Phase C picker keyboard tests
         run: node tests/test_phase_c.js
+      - name: Run Phase D viewer polish tests
+        run: node tests/test_phase_d.js
 
   qml-logic-tests:
     runs-on: ubuntu-24.04
