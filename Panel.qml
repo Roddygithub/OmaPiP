@@ -11,6 +11,7 @@ Item {
   id: root
 
   property string selectedAddress: ""
+  property string pickerAnchorAddress: ""
   property var resolvedToplevel: null
   property var sourceEntries: []
   property bool pickerVisible: false
@@ -24,6 +25,9 @@ Item {
   property bool verifyProcessReady: true
   property string viewerConfigError: ""
   readonly property int maxViewerConfigAttempts: 3
+  readonly property int maxPickerFocusAttempts: 20
+  property int pickerFocusAttempts: 0
+  property bool pickerFocusEstablished: false
   property bool sourceLost: false
   property bool viewerHovered: false
   property bool controlsHovered: false
@@ -82,7 +86,7 @@ Item {
     root.refreshSource()
     var address = String(payload || "").trim()
     if (address !== "" && root.select(address) === "selected") return
-    root.pickerVisible = true
+    root.showPicker()
   }
 
   function close() {
@@ -90,12 +94,55 @@ Item {
     root.viewerVisible = false
     root.cancelViewerConfiguration()
     root.viewerConfigured = false
+    pickerFocusTimer.stop()
   }
 
   function chooseAnother() {
     root.refreshSource()
-    root.pickerVisible = true
+    root.showPicker()
   }
+
+  function showPicker() {
+    root.syncPickerSelection()
+    root.pickerVisible = true
+    root.pickerFocusAttempts = 0
+    root.pickerFocusEstablished = false
+    sourceList.forceActiveFocus()
+    pickerFocusTimer.restart()
+  }
+
+  function setPickerSelection(index) {
+    var clamped = Logic.boundedIndex(index, root.sourceEntries.length)
+    sourceList.currentIndex = clamped
+    root.pickerAnchorAddress = clamped >= 0 ? root.sourceEntries[clamped].address : ""
+  }
+
+  function movePickerSelection(delta) {
+    root.setPickerSelection(sourceList.currentIndex + delta)
+  }
+
+  function syncPickerSelection() {
+    root.setPickerSelection(Logic.indexForAddress(root.sourceEntries, root.selectedAddress))
+  }
+
+  function repairPickerSelection() {
+    root.setPickerSelection(Logic.repairedIndex(sourceList.currentIndex, root.pickerAnchorAddress, root.sourceEntries))
+  }
+
+  function chooseFocusedSource() {
+    var entries = root.sourceEntries
+    var index = sourceList.currentIndex
+    if (index < 0 || index >= entries.length) return
+    root.select(entries[index].address)
+  }
+
+  function dismissPicker() {
+    root.pickerVisible = false
+    root.pickerAnchorAddress = ""
+    pickerFocusTimer.stop()
+  }
+
+  onSourceEntriesChanged: if (root.pickerVisible) root.repairPickerSelection()
 
   function cycleDisplayMode() {
     root.displayMode = (root.displayMode + 1) % 3
@@ -167,7 +214,9 @@ Item {
       root.viewerConfigAttempts = 0
       root.viewerConfigError = ""
       root.pickerVisible = false
+      root.pickerAnchorAddress = ""
       root.viewerVisible = true
+      pickerFocusTimer.stop()
       return "selected"
     }
     return "address-not-found"
@@ -358,6 +407,24 @@ Item {
     onTriggered: root.controlsVisible = false
   }
 
+  // The picker's backing window does not exist yet when showPicker() runs, so
+  // the first forceActiveFocus() is a no-op and the loader-hidden item chain
+  // is not visible yet. Retry until the list actually holds activeFocus.
+  Timer {
+    id: pickerFocusTimer
+    interval: 50
+    repeat: true
+    running: false
+    onTriggered: {
+      if (!root.pickerVisible || root.pickerFocusEstablished || root.pickerFocusAttempts >= root.maxPickerFocusAttempts) {
+        pickerFocusTimer.stop()
+        return
+      }
+      root.pickerFocusAttempts++
+      sourceList.forceActiveFocus()
+    }
+  }
+
   Process {
     id: hyprctlProcess
     onExited: function(exitCode) { root.onConfigurationExited(exitCode) }
@@ -432,14 +499,34 @@ Item {
           model: root.sourceEntries
           clip: true
           spacing: 6
+          focus: true
+          keyNavigationEnabled: false
+          Accessible.role: Accessible.List
+          Accessible.name: "Capturable windows"
+
+          Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Escape) root.dismissPicker()
+            else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.chooseFocusedSource()
+            else if (event.key === Qt.Key_Down) root.movePickerSelection(1)
+            else if (event.key === Qt.Key_Up) root.movePickerSelection(-1)
+            else if (event.key === Qt.Key_Home) root.setPickerSelection(0)
+            else if (event.key === Qt.Key_End) root.setPickerSelection(root.sourceEntries.length - 1)
+            else { event.accepted = false; return }
+            event.accepted = true
+          }
+          onActiveFocusChanged: if (sourceList.activeFocus) root.pickerFocusEstablished = true
 
           delegate: Rectangle {
             id: sourceDelegate
             required property var modelData
+            required property int index
             width: sourceList.width
             height: 54
             radius: 5
-            color: mouse.containsMouse ? "#3b3b3b" : "#252525"
+            color: mouse.containsMouse ? "#3b3b3b"
+              : (sourceDelegate.index === sourceList.currentIndex ? "#4a4a4a" : "#252525")
+            border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
+            border.color: "#8a8a8a"
 
             Text {
               anchors.left: parent.left
@@ -468,7 +555,10 @@ Item {
               id: mouse
               anchors.fill: parent
               hoverEnabled: true
-              onClicked: root.select(sourceDelegate.modelData.address)
+              onClicked: {
+                root.setPickerSelection(sourceDelegate.index)
+                root.select(sourceDelegate.modelData.address)
+              }
             }
           }
         }

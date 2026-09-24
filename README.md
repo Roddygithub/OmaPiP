@@ -9,6 +9,7 @@ Keep any window visible while you work — a video, a dashboard, a build log, a 
 ## Features
 
 - **Any selectable Wayland window** — pick from a live list of open windows
+- **Keyboard-navigable picker** — arrow to a source, Enter to capture, Esc to dismiss
 - **Native Omarchy bar widget** — one-click access from the bar
 - **Floating always-visible viewer** — pinned across workspaces, raised above normal windows
 - **Freeform move and resize** — drag anywhere to move; drag any edge or corner to resize (no aspect-ratio lock)
@@ -38,6 +39,10 @@ omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 
 | Action | Result |
 |--------|--------|
+| ↑ / ↓ in picker | Move keyboard selection (clamped at both ends) |
+| Home / End in picker | Jump to the first / last source |
+| Enter in picker | Open the focused source (same path as a click) |
+| Esc in picker | Close picker only; an open viewer keeps running |
 | Left-click + drag on viewer | Move viewer freely (native compositor move) |
 | Drag any edge / corner | Resize freely (8 edges, native compositor resize) |
 | Click **Fill** button | Cycle display mode: Fill → Fit → Stretch |
@@ -128,8 +133,8 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 | Item | Status |
 |------|--------|
 | Current release | v0.1.2 |
-| Tests | 101 automated Node tests (86 display/behavior + 15 Phase A contract) plus Qt JavaScript-engine smoke tests |
-| GitHub Actions CI | Enabled (manifest + display + Phase A contract + QML logic tests) |
+| Tests | 136 automated Node tests (86 display/behavior + 15 Phase A contract + 35 picker keyboard) plus Qt JavaScript-engine and QML key-delivery tests |
+| GitHub Actions CI | Enabled (manifest + display + Phase A contract + Phase C picker keyboard + QML logic tests) |
 | Marketplace | [Listed and verified with the current marketplace preview](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
 
 ## Project Structure
@@ -142,7 +147,8 @@ manifest.json       # Omarchy plugin manifest
 tests/
   test_display.js   # 86 display/geometry tests
   test_phase_a.js   # 15 Phase A contract tests
-  qml/              # Qt JavaScript-engine tests for shared logic
+  test_phase_c.js   # 35 picker keyboard contract tests
+  qml/              # Qt JavaScript-engine and key-delivery tests for shared logic
 docs/
   README.md         # Current vs historical documentation map
   *.md              # Research and validation archive
@@ -156,6 +162,7 @@ LICENSE             # MIT
 # Run automated Node tests
 node tests/test_display.js
 node tests/test_phase_a.js
+node tests/test_phase_c.js
 
 # Run shared JavaScript-module smoke tests through Qt (Qt required)
 QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests/qml
@@ -168,7 +175,7 @@ omarchy plugin validate .
 
 1. Fork and create a feature branch
 2. Make focused changes with clear commit messages
-3. Ensure the two Node suites (86/86 and 15/15) and the Qt JavaScript-engine smoke tests pass
+3. Ensure the three Node suites (86/86, 15/15 and 35/35) and the Qt tests pass
 4. Run `omarchy plugin validate .` locally if on Omarchy
 5. Open a PR against `main`
 
