@@ -75,6 +75,11 @@ function displaySize(mode, viewerWidth, viewerHeight, sourceWidth, sourceHeight)
   return { w: Math.round(width), h: Math.round(height) }
 }
 
+function viewerConfigAfterSelect(viewerVisible, configured, attempts) {
+  if (!viewerVisible) return { configured: false, attempts: 0 }
+  return { configured: configured, attempts: attempts }
+}
+
 function initialViewerSize(monitorWidth, monitorHeight) {
   var mw = boundedNumber(monitorWidth, 1920, 160, 10000)
   var mh = boundedNumber(monitorHeight, 1080, 90, 10000)

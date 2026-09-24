@@ -53,5 +53,40 @@ for (; attempts < 3 && !configured; attempts++) {
 assert(configured && attempts === 3, 'configuration model only succeeds after observable confirmation')
 assert(attempts <= 3, 'configuration retries are bounded')
 
+// Geometry reconfiguration contract: README - the viewer keeps its geometry
+// when switching sources; only the first open (or open after close) runs the
+// initial configuration (size/float/pin/position).
+const viewerConfigAfterSelect = Logic.viewerConfigAfterSelect
+var cfg = viewerConfigAfterSelect(false, false, 0)
+assert(cfg.configured === false && cfg.attempts === 0, 'initial select requires viewer configuration')
+cfg = viewerConfigAfterSelect(true, true, 1)
+assert(cfg.configured === true && cfg.attempts === 1, 'source switch while viewer is open does not reconfigure geometry')
+cfg = viewerConfigAfterSelect(true, false, 2)
+assert(cfg.configured === false && cfg.attempts === 2, 'an in-flight initial configuration keeps its retry state across a source switch')
+cfg = viewerConfigAfterSelect(false, false, 3)
+assert(cfg.configured === false && cfg.attempts === 0, 'close/reopen rearms the initial configuration')
+
+// Wire-up guard: these assertions fail if Panel.qml::select() is reverted to
+// the unconditional reset that caused the geometry regression, or stops
+// routing config state through the shared helper.
+const fs = require('fs')
+const path = require('path')
+const panelSource = fs.readFileSync(path.join(__dirname, '..', 'Panel.qml'), 'utf8')
+function functionBody(source, startMarker, endMarker) {
+  const start = source.indexOf(startMarker)
+  const end = source.indexOf(endMarker, start)
+  return source.slice(start, end === -1 ? source.length : end)
+}
+const selectBody = functionBody(panelSource, 'function select(address)', 'function sources()')
+assert(selectBody.includes('Logic.viewerConfigAfterSelect(root.viewerVisible'),
+  'select() routes config state through viewerConfigAfterSelect')
+assert(!/root\.viewerConfigured\s*=\s*false/.test(selectBody),
+  'select() does not unconditionally clear viewerConfigured (geometry regression guard)')
+assert(!/root\.viewerConfigAttempts\s*=\s*0/.test(selectBody),
+  'select() does not unconditionally reset viewerConfigAttempts (geometry regression guard)')
+const closeBody = functionBody(panelSource, 'function close()', 'function chooseAnother()')
+assert(/root\.viewerConfigured\s*=\s*false/.test(closeBody),
+  'close() clears viewerConfigured so a reopen reconfigures')
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
