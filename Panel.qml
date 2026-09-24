@@ -102,6 +102,7 @@ Item {
     root.syncPickerSelection()
     root.pickerVisible = true
     sourceList.forceActiveFocus()
+    pickerFocusTimer.restart()
   }
 
   function setPickerSelection(index) {
@@ -394,6 +395,23 @@ Item {
     interval: root.controlsHideDelay
     repeat: false
     onTriggered: root.controlsVisible = false
+  }
+
+  // The picker's backing window does not exist yet when showPicker() runs, so
+  // the first forceActiveFocus() is a no-op and the loader-hidden item chain
+  // is not visible yet. Retry until the list actually holds activeFocus.
+  Timer {
+    id: pickerFocusTimer
+    interval: 50
+    repeat: true
+    running: false
+    onTriggered: {
+      if (!root.pickerVisible || sourceList.activeFocus) {
+        pickerFocusTimer.stop()
+        return
+      }
+      sourceList.forceActiveFocus()
+    }
   }
 
   Process {
