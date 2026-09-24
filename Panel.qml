@@ -25,6 +25,8 @@ Item {
   property bool verifyProcessReady: true
   property string viewerConfigError: ""
   readonly property int maxViewerConfigAttempts: 3
+  readonly property int maxPickerFocusAttempts: 20
+  property int pickerFocusAttempts: 0
   property bool sourceLost: false
   property bool viewerHovered: false
   property bool controlsHovered: false
@@ -91,6 +93,7 @@ Item {
     root.viewerVisible = false
     root.cancelViewerConfiguration()
     root.viewerConfigured = false
+    pickerFocusTimer.stop()
   }
 
   function chooseAnother() {
@@ -101,6 +104,7 @@ Item {
   function showPicker() {
     root.syncPickerSelection()
     root.pickerVisible = true
+    root.pickerFocusAttempts = 0
     sourceList.forceActiveFocus()
     pickerFocusTimer.restart()
   }
@@ -132,6 +136,7 @@ Item {
 
   function dismissPicker() {
     root.pickerVisible = false
+    pickerFocusTimer.stop()
   }
 
   onSourceEntriesChanged: if (root.pickerVisible) root.repairPickerSelection()
@@ -207,6 +212,7 @@ Item {
       root.viewerConfigError = ""
       root.pickerVisible = false
       root.viewerVisible = true
+      pickerFocusTimer.stop()
       return "selected"
     }
     return "address-not-found"
@@ -406,10 +412,11 @@ Item {
     repeat: true
     running: false
     onTriggered: {
-      if (!root.pickerVisible || sourceList.activeFocus) {
+      if (!root.pickerVisible || sourceList.activeFocus || root.pickerFocusAttempts >= root.maxPickerFocusAttempts) {
         pickerFocusTimer.stop()
         return
       }
+      root.pickerFocusAttempts++
       sourceList.forceActiveFocus()
     }
   }
@@ -512,9 +519,9 @@ Item {
             height: 54
             radius: 5
             color: mouse.containsMouse ? "#3b3b3b"
-              : (sourceDelegate.index === sourceList.currentIndex ? "#333333" : "#252525")
+              : (sourceDelegate.index === sourceList.currentIndex ? "#3f3f3f" : "#252525")
             border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
-            border.color: "#6a6a6a"
+            border.color: "#8a8a8a"
 
             Text {
               anchors.left: parent.left

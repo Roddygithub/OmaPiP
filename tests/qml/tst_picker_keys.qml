@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import "../../PanelLogic.js" as Logic
 
 // Runtime key-delivery contract for the picker pattern: a focused ListView
 // with keyNavigationEnabled disabled receives the keys Panel.qml handles, and
@@ -36,22 +37,22 @@ TestCase {
         Keys.onPressed: function(event) {
             testCaseRoot.seen++
             if (event.key === Qt.Key_Down) {
-                list.currentIndex = Math.min(list.count - 1, list.currentIndex + 1)
+                list.currentIndex = Logic.boundedIndex(list.currentIndex + 1, list.count)
                 event.accepted = true
                 return
             }
             if (event.key === Qt.Key_Up) {
-                list.currentIndex = Math.max(0, list.currentIndex - 1)
+                list.currentIndex = Logic.boundedIndex(list.currentIndex - 1, list.count)
                 event.accepted = true
                 return
             }
             if (event.key === Qt.Key_Home) {
-                list.currentIndex = 0
+                list.currentIndex = Logic.boundedIndex(0, list.count)
                 event.accepted = true
                 return
             }
             if (event.key === Qt.Key_End) {
-                list.currentIndex = list.count - 1
+                list.currentIndex = Logic.boundedIndex(list.count - 1, list.count)
                 event.accepted = true
                 return
             }
@@ -102,7 +103,6 @@ TestCase {
         compare(list.currentIndex, -1, "index is -1 on an empty list")
         keyClick(Qt.Key_Down)
         compare(list.currentIndex, -1, "Down on an empty list selects nothing")
-        testCaseRoot.entries = testCaseRoot.entries
         testCaseRoot.entries = [{ address: "aa", title: "A" }, { address: "bb", title: "B" }, { address: "cc", title: "C" }]
         wait(50)
         verify(list.currentIndex >= 0 && list.currentIndex < list.count,

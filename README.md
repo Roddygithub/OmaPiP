@@ -134,7 +134,7 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 |------|--------|
 | Current release | v0.1.2 |
 | Tests | 136 automated Node tests (86 display/behavior + 15 Phase A contract + 35 picker keyboard) plus Qt JavaScript-engine and QML key-delivery tests |
-| GitHub Actions CI | Enabled (manifest + display + Phase A contract + QML logic tests) |
+| GitHub Actions CI | Enabled (manifest + display + Phase A contract + Phase C picker keyboard + QML logic tests) |
 | Marketplace | [Listed and verified with the current marketplace preview](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
 
 ## Project Structure
