@@ -2,28 +2,48 @@ name: validate
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   manifest:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Validate manifest and whitespace
         run: |
           python3 - <<'PY'
           import json
+          from pathlib import Path
           m = json.load(open("manifest.json"))
           assert m["schemaVersion"] == 1
           assert m["id"] == "io.github.roddygithub.omapip"
           assert m["version"] == "0.1.2"
           assert m["entryPoints"]["barWidget"] == "BarWidget.qml"
           assert m["kinds"] == ["bar-widget"]
+          for path in ("Panel.qml", "PanelLogic.js", "BarWidget.qml", "README.md", "preview.png"):
+              assert Path(path).is_file(), f"required file missing: {path}"
           PY
-          git diff --check
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            git diff --check "origin/$GITHUB_BASE_REF...HEAD"
+          else
+            before="${{ github.event.before }}"
+            if [ -z "$before" ] || echo "$before" | grep -q '^0\{40\}$'; then
+              git diff --check HEAD^ HEAD
+            else
+              git diff --check "$before...HEAD"
+            fi
+          fi
 
   display-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,13 +60,16 @@ jobs:
 
   qml-logic-tests:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Qt QML test runner
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y \
+            sudo apt-get install --no-install-recommends -y \
             qt6-declarative-dev-tools \
+            qml6-module-qtquick \
+            qml6-module-qttest \
             qml6-module-qtqml-workerscript \
             qml6-module-qtquick-window
       - name: Run shared QML logic tests

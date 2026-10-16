@@ -48,6 +48,18 @@ assert(controlsBlock.includes('Accessible.name:'), 'toolbar buttons expose acces
 assert(controlsBlock.includes('Display mode: '), 'mode button announces the current display mode')
 assert(controlsBlock.includes('Choose another source'), 'choose button has an accessible name')
 assert(controlsBlock.includes('Close picture-in-picture'), 'close button has an accessible name')
+assert(controlsBlock.includes('activeFocusOnTab: true'), 'toolbar controls participate in Tab traversal')
+assert(controlsBlock.includes('Keys.onPressed') && controlsBlock.includes('Qt.Key_Space'), 'focused controls activate with keyboard keys')
+assert(controlsBlock.includes('Accessible.onPressAction'), 'toolbar controls expose accessibility press actions')
+assert(controlsBlock.includes('border.width: activeFocus ? 2 : 0'), 'keyboard focus has a visible indicator')
+assert(controlsBlock.includes('root.controlsFocused'), 'keyboard focus keeps the toolbar visible')
+
+const pickerBlock = functionBody(panelSource, 'id: sourceList', 'id: viewerWindow')
+assert(pickerBlock.includes('Accessible.role: Accessible.ListItem'), 'picker entries expose list-item semantics')
+assert(pickerBlock.includes('Accessible.selected:'), 'picker exposes the selected item state')
+assert(panelSource.includes('onClosed: root.dismissPicker()'), 'closing picker window clears picker state')
+assert(panelSource.includes('Viewer setup failed — close and reopen to retry'), 'viewer setup failures have a user-facing recovery path')
+assert(panelSource.includes('Capture did not start — choose another window or reopen'), 'capture startup failure does not wait indefinitely')
 
 const boxBlock = functionBody(panelSource, 'id: unavailableBox', 'no-such-marker-end-of-file')
 assert(boxBlock.includes('z: 4'), 'unavailable box keeps z: 4 (above body/resize, below toolbar)')

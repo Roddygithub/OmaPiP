@@ -13,6 +13,55 @@ function isCapturableSource(toplevel, viewerTitle, pickerTitle) {
   return normalizeAddress(toplevel.address) !== ""
 }
 
+function resolveSelectedSource(selected, sourceLost, candidates) {
+  if (!selected || sourceLost) return { resolved: null, sourceLost: sourceLost }
+  for (var i = 0; candidates && i < candidates.length; i++) {
+    if (candidates[i] === selected) return { resolved: selected, sourceLost: false }
+  }
+  return { resolved: null, sourceLost: true }
+}
+
+function configurationGenerationIsCurrent(active, current) { return active === current }
+function isInitialViewerConfiguration(attempts) { return attempts === 0 }
+
+function logicalMonitorSize(width, height, scale, transform) {
+  var monitorWidth = Number(width)
+  var monitorHeight = Number(height)
+  var monitorScale = Number(scale)
+  if (!isFinite(monitorWidth) || monitorWidth <= 0) monitorWidth = 1920
+  if (!isFinite(monitorHeight) || monitorHeight <= 0) monitorHeight = 1080
+  if (!isFinite(monitorScale) || monitorScale <= 0) monitorScale = 1
+  var logicalWidth = Math.max(160, Math.round(monitorWidth / monitorScale))
+  var logicalHeight = Math.max(90, Math.round(monitorHeight / monitorScale))
+  var rotation = Number(transform)
+  if (rotation === 1 || rotation === 3 || rotation === 5 || rotation === 7) {
+    var swapped = logicalWidth
+    logicalWidth = logicalHeight
+    logicalHeight = swapped
+  }
+  return { w: logicalWidth, h: logicalHeight }
+}
+
+function monitorWorkArea(x, y, width, height, scale, transform, reserved) {
+  var size = logicalMonitorSize(width, height, scale, transform)
+  var monitorX = Number(x)
+  var monitorY = Number(y)
+  if (!isFinite(monitorX)) monitorX = 0
+  if (!isFinite(monitorY)) monitorY = 0
+  reserved = reserved || []
+  var left = boundedNumber(reserved[0], 0, 0, size.w)
+  var top = boundedNumber(reserved[1], 0, 0, size.h)
+  var right = boundedNumber(reserved[2], 0, 0, size.w - left)
+  var bottom = boundedNumber(reserved[3], 0, 0, size.h - top)
+  return {
+    x: monitorX + left,
+    y: monitorY + top,
+    w: Math.max(1, size.w - left - right),
+    h: Math.max(1, size.h - top - bottom),
+    reserved: [left, top, right, bottom]
+  }
+}
+
 // The viewer is our own Quickshell window: match the exact title AND the
 // Quickshell app id so a foreign window cannot be configured by spoofing the
 // title alone (viewerAddress drives float/pin/resize/move).
@@ -91,8 +140,9 @@ function viewerConfigAfterSelect(viewerVisible, configured, attempts) {
 }
 
 function initialViewerSize(monitorWidth, monitorHeight) {
-  var mw = boundedNumber(monitorWidth, 1920, 160, 10000)
-  var mh = boundedNumber(monitorHeight, 1080, 90, 10000)
+  var logicalSize = logicalMonitorSize(monitorWidth, monitorHeight, 1, 0)
+  var mw = logicalSize.w
+  var mh = logicalSize.h
   var width = Math.min(560, Math.round(mw * 0.35))
   var height = Math.min(315, Math.round(mh * 0.35))
   if (width < 240) width = 240

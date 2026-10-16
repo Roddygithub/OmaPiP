@@ -8,11 +8,12 @@
 ## Historical / research archive
 
 The following documents record earlier design, feasibility, governance, and
-validation work. They are useful context but are not the current product
-contract or release status:
+validation work. Their status claims are historical; they are not the current
+product contract or release status:
 
 - `feasibility-report.md`
 - `v1-validation.md`
-- `github-governance.md`
 - `ecosystem-prior-art.md`
-- `research-probes/`
+
+Disposable feasibility probe source files were removed after the production
+implementation; their recorded outcomes remain in `feasibility-report.md`.
