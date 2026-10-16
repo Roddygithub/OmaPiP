@@ -68,5 +68,27 @@ assert(boxBlock.includes('Accessible.role: Accessible.StaticText'), 'state messa
 assert(panelSource.includes('readonly property string viewerAppId: "org.quickshell"'),
   'Panel.qml declares the quickshell viewer app id')
 
+// Source tracking and placement wiring. These guards pin Quickshell-only
+// wiring that cannot execute outside the real shell (Hyprland.monitorFor and
+// the toplevels model): re-placement must follow the viewer's own monitor
+// with a focused fallback, and model events must sync without forcing a
+// refresh (no re-entrancy into refreshToplevels).
+const viewerMonitorBody = functionBody(panelSource, 'function viewerMonitor()', 'function placeAt(')
+assert(viewerMonitorBody.includes('Hyprland.monitorFor(screen)'), 'placement resolves the monitor from the viewer screen')
+assert(viewerMonitorBody.includes('Hyprland.focusedMonitor'), 'monitor resolution falls back to the focused monitor')
+const placeBody = functionBody(panelSource, 'function placeAt(', 'function select(')
+assert(placeBody.includes('root.viewerMonitor()'), 're-placement uses the viewer\'s own monitor')
+const syncBody = functionBody(panelSource, 'function syncSources()', '// Explicit refresh')
+assert(syncBody.includes('Hyprland.toplevels.values') && !syncBody.includes('refreshToplevels'),
+  'event sync reads the live model without forcing an IPC refresh')
+const refreshBody = functionBody(panelSource, 'function refreshSource()', 'function open(')
+assert(refreshBody.includes('Hyprland.refreshToplevels()') && refreshBody.includes('root.syncSources()'),
+  'explicit refresh forces a re-query then syncs')
+const eventHook = functionBody(panelSource, 'target: Hyprland.toplevels', 'Timer {')
+assert(eventHook.includes('function onValuesChanged()'), 'toplevel model changes are tracked event-driven')
+assert(eventHook.includes('root.pickerVisible || root.viewerVisible'), 'event tracking only runs while a surface is visible')
+assert(eventHook.includes('root.syncSources()') && !eventHook.includes('refreshSource()'),
+  'model events sync state without re-entering the forced refresh')
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

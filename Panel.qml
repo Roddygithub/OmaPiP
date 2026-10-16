@@ -71,8 +71,10 @@ Item {
     return Logic.boundedNumber(value, fallback, minimum, maximum)
   }
 
-  function refreshSource() {
-    Hyprland.refreshToplevels()
+  // Rebuild picker entries and source resolution from the live toplevel
+  // model. Quickshell maintains that model from the Hyprland event socket,
+  // so this reads current state without issuing any IPC of its own.
+  function syncSources() {
     var list = Hyprland.toplevels.values
     var entries = []
     var capturableToplevels = []
@@ -91,6 +93,14 @@ Item {
     root.sourceEntries = entries
     root.sourceLost = resolution.sourceLost
     root.resolvedToplevel = resolution.resolved
+  }
+
+  // Explicit refresh: force a hyprctl re-query, then sync. Reserved for
+  // user actions and the slow fallback poll — the valuesChanged hook calls
+  // syncSources() only, so model events can never re-enter refreshToplevels().
+  function refreshSource() {
+    Hyprland.refreshToplevels()
+    root.syncSources()
   }
 
   function open(payload) {
@@ -191,9 +201,17 @@ Item {
   function placeBottomRight() { placeAt(false) }
   function placeBottomLeft() { placeAt(true) }
 
+  // Re-placement follows the monitor the viewer actually occupies — the
+  // user may have dragged it away from the focused monitor.
+  function viewerMonitor() {
+    var screen = viewerWindow.screen
+    var monitor = screen ? Hyprland.monitorFor(screen) : null
+    return monitor || Hyprland.focusedMonitor
+  }
+
   function placeAt(left) {
     var address = viewerAddress()
-    var monitor = Hyprland.focusedMonitor
+    var monitor = root.viewerMonitor()
     if (!root.validAddress(address) || !monitor) return
     var reserved = monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
     var transform = monitor.lastIpcObject && monitor.lastIpcObject.transform
@@ -549,8 +567,19 @@ Item {
     onTriggered: root.configureViewer()
   }
 
+  // Track window open/close churn without polling: Quickshell emits
+  // valuesChanged whenever the toplevel model changes, giving immediate
+  // source-loss detection. The slow fallback poll below still covers
+  // wayland-handle attach timing and any missed event.
+  Connections {
+    target: Hyprland.toplevels
+    function onValuesChanged() {
+      if (root.pickerVisible || root.viewerVisible) root.syncSources()
+    }
+  }
+
   Timer {
-    interval: 500
+    interval: 2000
     running: root.pickerVisible || root.viewerVisible
     repeat: true
     onTriggered: root.refreshSource()
