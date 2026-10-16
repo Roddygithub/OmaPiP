@@ -137,6 +137,21 @@ omarchy plugin disable io.github.roddygithub.omapip
 omarchy plugin remove io.github.roddygithub.omapip --yes
 ```
 
+## Stay up to date
+
+New versions are published as GitHub Releases. To receive a notification when
+OmaPiP is updated, open the repository, choose **Watch → Custom → Releases**,
+or subscribe to the [release RSS feed](https://github.com/Roddygithub/OmaPiP/releases.atom).
+
+After a release notification, update the installed plugin with:
+
+```bash
+omarchy plugin update io.github.roddygithub.omapip --yes
+```
+
+OmaPiP does not phone home or run a background update checker; release
+notifications stay opt-in and the plugin remains network-free at runtime.
+
 ## CLI / Advanced Use
 
 ```bash
