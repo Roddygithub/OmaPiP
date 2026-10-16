@@ -24,7 +24,7 @@ jobs:
           m = json.load(open("manifest.json"))
           assert m["schemaVersion"] == 1
           assert m["id"] == "io.github.roddygithub.omapip"
-          assert m["version"] == "0.1.2"
+          assert m["version"] == "0.1.3"
           assert m["entryPoints"]["barWidget"] == "BarWidget.qml"
           assert m["kinds"] == ["bar-widget"]
           for path in ("Panel.qml", "PanelLogic.js", "BarWidget.qml", "README.md", "preview.png"):

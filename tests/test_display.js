@@ -1,4 +1,4 @@
-// Unit tests for OmaPiP v0.1.2 display/geometry logic.
+// Unit tests for OmaPiP v0.1.3 display/geometry logic.
 // Display sizing mirrors Panel.qml; free-resize math models the intended
 // ratio-free behavior, while native compositor resize is human-validated live.
 // Run: node tests/test_display.js
