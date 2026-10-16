@@ -2,6 +2,8 @@
 
 Picture-in-Picture for any Wayland window on Omarchy.
 
+![OmaPiP viewer running in Omarchy](preview.png)
+
 ## Why OmaPiP?
 
 Keep any window visible while you work — a video, a dashboard, a build log, a video call, or a reference document. The source window stays exactly where it is; OmaPiP mirrors it into a floating, always-on-top viewer that you can move, resize, and pin across workspaces.
@@ -10,12 +12,14 @@ Keep any window visible while you work — a video, a dashboard, a build log, a 
 
 - **Any selectable Wayland window** — pick from a live list of open windows
 - **Keyboard-navigable picker** — arrow to a source, Enter to capture, Esc to dismiss
+- **Keyboard-accessible viewer controls** — Tab to toolbar buttons; Enter or Space activates
 - **Native Omarchy bar widget** — one-click access from the bar
 - **Floating always-visible viewer** — pinned across workspaces, raised above normal windows
 - **Freeform move and resize** — drag anywhere to move; drag any edge or corner to resize (no aspect-ratio lock)
 - **Fill / Fit / Stretch rendering** — three display modes, cycled from the toolbar
 - **Change source without reopening** — *Choose* reopens the picker while capture continues
 - **Exact source identity** — tracked by Hyprland address, not fragile titles
+- **No automatic source reattachment** — a lost source stays unavailable until explicit selection
 - **Explicit unavailable-source handling** — clear prompt when the source window is closed
 - **No helper daemon** — runs entirely inside `omarchy-shell` as QML
 - **No administrator privileges** — user-level only
@@ -35,6 +39,16 @@ omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 6. Click **Choose** to pick a different window
 7. Click **Close** to hide the viewer (source window is unaffected)
 
+The images above are genuine captures from an Omarchy/Hyprland session using
+neutral demo content. They are cropped to the product surfaces and contain no
+personal window data.
+
+## Screenshots
+
+![OmaPiP viewer with live content and toolbar](docs/assets/omapip-viewer.png)
+
+![OmaPiP picker with keyboard focus](docs/assets/omapip-picker.png)
+
 ## Controls
 
 | Action | Result |
@@ -43,13 +57,16 @@ omarchy plugin add https://github.com/Roddygithub/OmaPiP.git --enable
 | Home / End in picker | Jump to the first / last source |
 | Enter in picker | Open the focused source (same path as a click) |
 | Esc in picker | Close picker only; an open viewer keeps running |
+| Tab in viewer | Move keyboard focus through toolbar controls |
+| Enter / Space on a toolbar control | Activate the focused control |
 | Left-click + drag on viewer | Move viewer freely (native compositor move) |
-| Drag any edge / corner | Resize freely (8 edges, native compositor resize) |
+| Drag any edge / corner | Resize freely (4 edges and 4 corners, native compositor resize) |
 | Click **Fill** button | Cycle display mode: Fill → Fit → Stretch |
 | Click **Choose** | Reopen source picker (capture continues) |
 | Click **Close** | Close viewer only; source window unaffected |
 | Right-click on viewer | Reopen source picker |
-| Source window destroyed | Toolbar shows "Choose another window" |
+| Source window destroyed | Viewer shows "Choose another window" |
+| Capture does not start within 8 seconds | Viewer shows a recovery prompt |
 
 ## Display Modes
 
@@ -67,6 +84,7 @@ The viewer keeps its geometry when switching sources or display modes.
 - Hyprland
 - Quickshell with `ScreencopyView` support
 - A Wayland session
+- Picker minimum size: 300×240; viewer minimum size: 160×90 logical pixels
 
 No minimum versions are enforced beyond what Omarchy itself requires.
 
@@ -133,9 +151,9 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 | Item | Status |
 |------|--------|
 | Current release | v0.1.2 |
-| Tests | 136 automated Node tests (86 display/behavior + 15 Phase A contract + 35 picker keyboard) plus Qt JavaScript-engine and QML key-delivery tests |
-| GitHub Actions CI | Enabled (manifest + display + Phase A contract + Phase C picker keyboard + QML logic tests) |
-| Marketplace | [Listed and verified with the current marketplace preview](https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip) in the Omarchy Plugin Marketplace |
+| Automated tests | 182 Node assertions across display, source/configuration, picker, and viewer suites; 16 Qt QML runner results (12 test functions plus setup/cleanup) |
+| GitHub Actions CI | Node and Qt QML suites plus manifest, required-file, preview, and changed-diff checks |
+| Marketplace | Listing status not verified; no marketplace approval or endorsement is claimed |
 
 ## Project Structure
 
@@ -146,8 +164,9 @@ PanelLogic.js       # Pure logic shared by QML and automated tests
 manifest.json       # Omarchy plugin manifest
 tests/
   test_display.js   # 86 display/geometry tests
-  test_phase_a.js   # 15 Phase A contract tests
-  test_phase_c.js   # 35 picker keyboard contract tests
+  test_phase_a.js   # Source identity and configuration contract tests
+  test_phase_c.js   # Picker keyboard logic tests
+  test_phase_d.js   # Viewer identity and accessibility wiring tests
   qml/              # Qt JavaScript-engine and key-delivery tests for shared logic
 docs/
   README.md         # Current vs historical documentation map
@@ -163,6 +182,7 @@ LICENSE             # MIT
 node tests/test_display.js
 node tests/test_phase_a.js
 node tests/test_phase_c.js
+node tests/test_phase_d.js
 
 # Run shared JavaScript-module smoke tests through Qt (Qt required)
 QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests/qml
@@ -175,7 +195,7 @@ omarchy plugin validate .
 
 1. Fork and create a feature branch
 2. Make focused changes with clear commit messages
-3. Ensure the three Node suites (86/86, 15/15 and 35/35) and the Qt tests pass
+3. Ensure all four Node suites and the Qt tests pass
 4. Run `omarchy plugin validate .` locally if on Omarchy
 5. Open a PR against `main`
 

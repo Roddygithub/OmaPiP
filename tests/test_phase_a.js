@@ -1,7 +1,12 @@
-// Focused Phase A contract tests. Runtime QML/Hyprland lifecycle remains live-tested.
+// Focused production-logic tests. QML/Hyprland lifecycle remains live-tested.
 const Logic = require('./load_logic')
 const normalizeAddress = Logic.normalizeAddress
 const isCapturableSource = Logic.isCapturableSource
+const resolveSelectedSource = Logic.resolveSelectedSource
+const configurationGenerationIsCurrent = Logic.configurationGenerationIsCurrent
+const isInitialViewerConfiguration = Logic.isInitialViewerConfiguration
+const logicalMonitorSize = Logic.logicalMonitorSize
+const monitorWorkArea = Logic.monitorWorkArea
 
 let passed = 0
 let failed = 0
@@ -25,23 +30,28 @@ assert(!isCapturableSource({ ...valid, wayland: null }, viewerTitle, pickerTitle
 assert(!isCapturableSource({ ...valid, title: viewerTitle }, viewerTitle, pickerTitle), 'viewer is rejected')
 assert(!isCapturableSource({ ...valid, title: pickerTitle }, viewerTitle, pickerTitle), 'picker is rejected')
 
-function loseSource(state, found) {
-  if (state.sourceLost) {
-    state.resolved = null
-    return
-  }
-  if (state.selectedAddress !== '' && state.resolved && !found) state.sourceLost = true
-  state.resolved = state.sourceLost ? null : found
-}
-const lifecycle = { selectedAddress: 'abc', resolved: { address: 'abc' }, sourceLost: false }
-loseSource(lifecycle, null)
-assert(lifecycle.sourceLost, 'source loss latches')
-loseSource(lifecycle, { address: 'abc' })
-assert(lifecycle.sourceLost && lifecycle.resolved === null, 'lost source does not reattach automatically')
-lifecycle.selectedAddress = 'def'
-lifecycle.resolved = { address: 'def' }
-lifecycle.sourceLost = false
-assert(!lifecycle.sourceLost, 'explicit reselection clears the loss latch')
+const selected = { address: 'abc' }
+const replacement = { address: 'abc' }
+let resolution = resolveSelectedSource(selected, false, [selected])
+assert(resolution.resolved === selected && !resolution.sourceLost, 'same selected object remains resolved')
+resolution = resolveSelectedSource(selected, false, [replacement])
+assert(resolution.resolved === null && resolution.sourceLost, 'reused address cannot attach a replacement object')
+resolution = resolveSelectedSource(selected, true, [selected])
+assert(resolution.resolved === null && resolution.sourceLost, 'source loss remains latched if the same object reappears')
+resolution = resolveSelectedSource(replacement, false, [replacement])
+assert(resolution.resolved === replacement && !resolution.sourceLost, 'explicit selection can bind a replacement object')
+assert(!configurationGenerationIsCurrent(2, 3), 'a stale process callback cannot act on a newer generation')
+assert(configurationGenerationIsCurrent(3, 3), 'current process callbacks remain valid')
+assert(isInitialViewerConfiguration(0) && !isInitialViewerConfiguration(1), 'geometry setup runs only on the initial attempt')
+let monitor = logicalMonitorSize(3840, 2160, 2, 0)
+assert(monitor.w === 1920 && monitor.h === 1080, 'scaled monitor dimensions use logical pixels')
+monitor = logicalMonitorSize(1920, 1080, 1, 1)
+assert(monitor.w === 1080 && monitor.h === 1920, 'rotated monitor dimensions swap logical axes')
+assert(logicalMonitorSize(1920, 1080, 1, 5).w === 1080, 'flipped portrait transform swaps logical axes')
+assert(logicalMonitorSize(1920, 1080, 1, 7).h === 1920, 'mirrored portrait transform swaps logical axes')
+const area = monitorWorkArea(0, 0, 3840, 2160, 2, 0, [10, 20, 30, 40])
+assert(area.x === 10 && area.y === 20 && area.w === 1880 && area.h === 1020,
+  'monitor work area applies scale and reserved edges')
 
 let configured = false
 let attempts = 0

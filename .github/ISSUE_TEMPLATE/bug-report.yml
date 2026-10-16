@@ -6,13 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug! Please fill out the sections below.
+        Thanks for reporting a bug! Remove personal data from logs and screenshots. Never post credentials, tokens, or private window contents.
   - type: input
     id: omarchy-version
     attributes:
       label: Omarchy Version
-      description: Output of `omarchy --version` or channel/branch
-      placeholder: "e.g., 2024.09 / stable"
+      description: Output of `omarchy version` (include channel/branch if available)
+      placeholder: "e.g., 4.0.3-1 / stable"
     validations:
       required: true
   - type: input
@@ -27,8 +27,8 @@ body:
     id: quickshell-version
     attributes:
       label: Quickshell Version
-      description: Output of `quickshell --version` or commit
-      placeholder: "e.g., 0.14.0"
+      description: Output of `qs --version` or `quickshell --version`
+      placeholder: "e.g., 0.3.1"
     validations:
       required: true
   - type: textarea
@@ -60,7 +60,7 @@ body:
     id: logs
     attributes:
       label: Logs / Output
-      description: Relevant logs, `hyprctl` output, or shell errors (if any)
+      description: Relevant logs, `hyprctl` output, or shell errors (if any); redact usernames, window titles, addresses, and personal data
       render: shell
     validations:
       required: false

@@ -18,11 +18,20 @@ Item {
   property bool viewerVisible: false
   property bool viewerConfigured: false
   property bool viewerConfigPending: false
+  property bool captureWaitExpired: false
   property int viewerConfigAttempts: 0
   property int viewerConfigGeneration: 0
   property int activeConfigGeneration: 0
   property bool hyprctlProcessReady: true
   property bool verifyProcessReady: true
+  property bool hyprctlProcessBusy: false
+  property bool verifyProcessBusy: false
+  property bool hyprctlProcessExitHandled: false
+  property bool verifyProcessExitHandled: false
+  property bool hyprctlProcessStarted: false
+  property bool verifyProcessStarted: false
+  property bool hyprctlProcessCancelRequested: false
+  property bool verifyProcessCancelRequested: false
   property string viewerConfigError: ""
   readonly property int maxViewerConfigAttempts: 3
   readonly property int maxPickerFocusAttempts: 20
@@ -31,6 +40,7 @@ Item {
   property bool sourceLost: false
   property bool viewerHovered: false
   property bool controlsHovered: false
+  property bool controlsFocused: false
   property bool controlsVisible: false
   readonly property int controlsHideDelay: 280
   property int displayMode: 0  // 0 = Fill, 1 = Fit, 2 = Stretch
@@ -64,23 +74,23 @@ Item {
   function refreshSource() {
     Hyprland.refreshToplevels()
     var list = Hyprland.toplevels.values
-    var found = null
     var entries = []
+    var capturableToplevels = []
     for (var i = 0; i < list.length; i++) {
       var toplevel = list[i]
       if (!root.isCapturableSource(toplevel)) continue
+      capturableToplevels.push(toplevel)
       var address = root.normalizeAddress(toplevel.address)
       entries.push({
         address: address,
         title: root.boundedText(toplevel.title, 160),
         appId: root.boundedText(toplevel.wayland.appId, 80)
       })
-      if (!root.sourceLost && address === root.selectedAddress) found = toplevel
     }
-    if (root.selectedAddress !== "" && root.resolvedToplevel !== null && found === null)
-      root.sourceLost = true
+    var resolution = Logic.resolveSelectedSource(root.resolvedToplevel, root.sourceLost, capturableToplevels)
     root.sourceEntries = entries
-    root.resolvedToplevel = found
+    root.sourceLost = resolution.sourceLost
+    root.resolvedToplevel = resolution.resolved
   }
 
   function open(payload) {
@@ -95,6 +105,7 @@ Item {
     root.viewerVisible = false
     root.cancelViewerConfiguration()
     root.viewerConfigured = false
+    root.captureWaitExpired = false
     pickerFocusTimer.stop()
   }
 
@@ -156,11 +167,17 @@ Item {
     return "Stretch"
   }
 
+  function activateControl(action) {
+    if (action === "Fill") root.cycleDisplayMode()
+    else if (action === "Choose") root.chooseAnother()
+    else root.close()
+  }
+
   // Hover model: keep the toolbar visible while the pointer is over the
   // content OR over the toolbar itself. It fades out only after the pointer
   // leaves BOTH, using a short delay to avoid flicker when crossing to buttons.
   function evaluateControlsVisibility() {
-    if (root.viewerHovered || root.controlsHovered) {
+    if (root.viewerHovered || root.controlsHovered || root.controlsFocused) {
       controlsHideTimer.stop()
       root.controlsVisible = true
     } else {
@@ -179,19 +196,16 @@ Item {
     var monitor = Hyprland.focusedMonitor
     if (!root.validAddress(address) || !monitor) return
     var reserved = monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
-    var leftReserved = root.boundedNumber(reserved[0], 0, 0, 10000)
-    var rightReserved = root.boundedNumber(reserved[2], 0, 0, 10000)
-    var bottomReserved = root.boundedNumber(reserved[3], 0, 0, 10000)
+    var transform = monitor.lastIpcObject && monitor.lastIpcObject.transform
+    var workArea = Logic.monitorWorkArea(monitor.x, monitor.y, monitor.width, monitor.height,
+      monitor.scale, transform, reserved)
     var width = root.boundedNumber(viewerWindow.width, 640, 160, 4000)
     var height = root.boundedNumber(viewerWindow.height, 360, 90, 4000)
     var margin = 24
-    var monitorX = root.boundedNumber(monitor.x, 0, -100000, 100000)
-    var monitorY = root.boundedNumber(monitor.y, 0, -100000, 100000)
-    var monitorWidth = root.boundedNumber(monitor.width, 1920, 160, 10000)
-    var monitorHeight = root.boundedNumber(monitor.height, 1080, 90, 10000)
-    var x = left ? monitorX + leftReserved + margin
-      : monitorX + monitorWidth - rightReserved - width - margin
-    var y = monitorY + monitorHeight - bottomReserved - height - margin
+    var minX = workArea.x + margin
+    var maxX = workArea.x + workArea.w - width - margin
+    var x = left ? minX : Math.max(minX, maxX)
+    var y = Math.max(workArea.y + margin, workArea.y + workArea.h - height - margin)
     var selector = "address:0x" + address
     var command = "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y
       + ", window = \"" + selector + "\" }); dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \""
@@ -211,6 +225,7 @@ Item {
       root.selectedAddress = wanted
       root.resolvedToplevel = toplevel
       root.sourceLost = false
+      root.captureWaitExpired = false
       var configState = Logic.viewerConfigAfterSelect(root.viewerVisible, root.viewerConfigured, root.viewerConfigAttempts)
       root.viewerConfigured = configState.configured
       root.viewerConfigAttempts = configState.attempts
@@ -274,17 +289,23 @@ Item {
 
   function computeInitialSize() {
     var monitor = Hyprland.focusedMonitor
-    return monitor ? Logic.initialViewerSize(monitor.width, monitor.height) : { w: 560, h: 315 }
+    if (!monitor) return { w: 560, h: 315 }
+    var transform = monitor.lastIpcObject && monitor.lastIpcObject.transform
+    var size = Logic.logicalMonitorSize(monitor.width, monitor.height, monitor.scale, transform)
+    return Logic.initialViewerSize(size.w, size.h)
   }
 
   function cancelViewerConfiguration() {
     root.viewerConfigGeneration++
-    if (hyprctlProcess.running) hyprctlProcess.running = false
-    if (verifyProcess.running) verifyProcess.running = false
-    // Stopping a Process is cancellation, not a new busy operation. Restore
-    // readiness immediately; any late onExited callback is generation-guarded.
-    root.hyprctlProcessReady = true
-    root.verifyProcessReady = true
+    if (hyprctlProcess.running) {
+      root.hyprctlProcessCancelRequested = true
+      hyprctlProcess.running = false
+    }
+    if (verifyProcess.running) {
+      root.verifyProcessCancelRequested = true
+      verifyProcess.running = false
+    }
+    // Termination is asynchronous; only onExited releases a process slot.
     root.viewerConfigPending = false
   }
 
@@ -311,26 +332,40 @@ Item {
   }
 
   function onConfigurationFailed() {
-    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    if (!Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) return
     root.viewerConfigPending = false
     root.viewerConfigError = "hyprctl configuration failed"
   }
 
   function onConfigurationExited(exitCode) {
+    if (root.hyprctlProcessExitHandled) return
+    root.hyprctlProcessExitHandled = true
+    root.hyprctlProcessStarted = false
+    root.hyprctlProcessCancelRequested = false
+    root.hyprctlProcessBusy = false
     root.hyprctlProcessReady = true
-    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    if (!Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) return
     if (exitCode !== 0) {
       root.onConfigurationFailed()
       return
     }
     root.verifyProcessReady = false
+    root.verifyProcessExitHandled = false
+    root.verifyProcessStarted = false
+    root.verifyProcessCancelRequested = false
+    root.verifyProcessBusy = true
     verifyProcess.command = ["hyprctl", "clients", "-j"]
     verifyProcess.running = true
   }
 
   function onVerificationExited(exitCode) {
+    if (root.verifyProcessExitHandled) return
+    root.verifyProcessExitHandled = true
+    root.verifyProcessStarted = false
+    root.verifyProcessCancelRequested = false
+    root.verifyProcessBusy = false
     root.verifyProcessReady = true
-    if (root.activeConfigGeneration !== root.viewerConfigGeneration) return
+    if (!Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) return
     root.viewerConfigPending = false
     if (exitCode === 0 && root.configurationClientMatches()) {
       root.viewerConfigured = true
@@ -343,32 +378,36 @@ Item {
   function configureViewer() {
     var address = root.normalizeAddress(root.viewerAddress())
     if (address === "" || root.viewerConfigPending || root.viewerConfigAttempts >= root.maxViewerConfigAttempts
-        || !root.hyprctlProcessReady || !root.verifyProcessReady) return
+        || !root.hyprctlProcessReady || !root.verifyProcessReady
+        || root.hyprctlProcessBusy || root.verifyProcessBusy) return
     var selector = "address:0x" + address
     var size = root.computeInitialSize()
     var width = size.w
     var height = size.h
     var monitor = Hyprland.focusedMonitor
     var reserved = monitor && monitor.lastIpcObject && monitor.lastIpcObject.reserved || [0, 0, 0, 0]
-    var rightReserved = root.boundedNumber(reserved[2], 0, 0, 10000)
-    var bottomReserved = root.boundedNumber(reserved[3], 0, 0, 10000)
-    var monitorX = monitor ? root.boundedNumber(monitor.x, 0, -100000, 100000) : 0
-    var monitorY = monitor ? root.boundedNumber(monitor.y, 0, -100000, 100000) : 0
-    var monitorWidth = monitor ? root.boundedNumber(monitor.width, 1920, 160, 10000) : 1920
-    var monitorHeight = monitor ? root.boundedNumber(monitor.height, 1080, 90, 10000) : 1080
-    var x = monitorX + monitorWidth - rightReserved - width - 24
-    var y = monitorY + monitorHeight - bottomReserved - height - 24
+    var transform = monitor && monitor.lastIpcObject && monitor.lastIpcObject.transform
+    var workArea = monitor ? Logic.monitorWorkArea(monitor.x, monitor.y, monitor.width, monitor.height,
+      monitor.scale, transform, reserved) : { x: 0, y: 0, w: 1920, h: 1080 }
+    var x = Math.max(workArea.x + 24, workArea.x + workArea.w - width - 24)
+    var y = Math.max(workArea.y + 24, workArea.y + workArea.h - height - 24)
     var commands = [
       "dispatch hl.dsp.window.float({ action = \"enable\", window = \"" + selector + "\" })",
       "dispatch hl.dsp.window.pin({ action = \"enable\", window = \"" + selector + "\" })",
-      "dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \"" + selector + "\" })",
-      "dispatch hl.dsp.window.resize({ x = " + width + ", y = " + height + ", window = \"" + selector + "\" })",
-      "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y + ", window = \"" + selector + "\" })"
+      "dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \"" + selector + "\" })"
     ]
+    if (Logic.isInitialViewerConfiguration(root.viewerConfigAttempts)) {
+      commands.push("dispatch hl.dsp.window.resize({ x = " + width + ", y = " + height + ", window = \"" + selector + "\" })")
+      commands.push("dispatch hl.dsp.window.move({ x = " + x + ", y = " + y + ", window = \"" + selector + "\" })")
+    }
     root.viewerConfigAttempts++
     root.activeConfigGeneration = root.viewerConfigGeneration
     root.viewerConfigPending = true
     root.viewerConfigError = ""
+    root.hyprctlProcessExitHandled = false
+    root.hyprctlProcessStarted = false
+    root.hyprctlProcessCancelRequested = false
+    root.hyprctlProcessBusy = true
     root.hyprctlProcessReady = false
     hyprctlProcess.command = ["hyprctl", "--batch", commands.join("; ")]
     hyprctlProcess.running = true
@@ -390,7 +429,10 @@ Item {
   Connections {
     target: screencopyView
     function onSourceSizeChanged() {
-      updateScreencopyViewGeometry()
+      root.updateScreencopyViewGeometry()
+    }
+    function onHasContentChanged() {
+      if (screencopyView.hasContent) root.captureWaitExpired = false
     }
   }
 
@@ -398,8 +440,8 @@ Item {
   // changes viewerContainer freely, and the view size must follow).
   Connections {
     target: viewerContainer
-    function onWidthChanged() { updateScreencopyViewGeometry() }
-    function onHeightChanged() { updateScreencopyViewGeometry() }
+    function onWidthChanged() { root.updateScreencopyViewGeometry() }
+    function onHeightChanged() { root.updateScreencopyViewGeometry() }
   }
 
   Timer {
@@ -429,6 +471,10 @@ Item {
 
   Process {
     id: hyprctlProcess
+    onStarted: root.hyprctlProcessStarted = true
+    onRunningChanged: {
+      if (!running && root.hyprctlProcessBusy) hyprctlStartFailureTimer.restart()
+    }
     onExited: function(exitCode) { root.onConfigurationExited(exitCode) }
   }
 
@@ -438,7 +484,44 @@ Item {
       id: verifyOutput
       waitForEnd: true
     }
+    onStarted: root.verifyProcessStarted = true
+    onRunningChanged: {
+      if (!running && root.verifyProcessBusy) verifyStartFailureTimer.restart()
+    }
     onExited: function(exitCode) { root.onVerificationExited(exitCode) }
+  }
+
+  Timer {
+    id: hyprctlStartFailureTimer
+    interval: 100
+    repeat: false
+    onTriggered: {
+      if (!root.hyprctlProcessBusy || hyprctlProcess.running || root.hyprctlProcessStarted
+          || root.hyprctlProcessExitHandled) return
+      root.hyprctlProcessExitHandled = true
+      root.hyprctlProcessBusy = false
+      root.hyprctlProcessReady = true
+      root.hyprctlProcessCancelRequested = false
+      root.onConfigurationFailed()
+    }
+  }
+
+  Timer {
+    id: verifyStartFailureTimer
+    interval: 100
+    repeat: false
+    onTriggered: {
+      if (!root.verifyProcessBusy || verifyProcess.running || root.verifyProcessStarted
+          || root.verifyProcessExitHandled) return
+      root.verifyProcessExitHandled = true
+      root.verifyProcessBusy = false
+      root.verifyProcessReady = true
+      root.verifyProcessCancelRequested = false
+      if (Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) {
+        root.viewerConfigPending = false
+        root.viewerConfigError = "viewer configuration process failed"
+      }
+    }
   }
 
   Timer {
@@ -447,6 +530,14 @@ Item {
     running: root.viewerConfigPending
     repeat: false
     onTriggered: root.timeoutViewerConfiguration()
+  }
+
+  Timer {
+    interval: 8000
+    running: root.viewerVisible && root.resolvedToplevel !== null && !screencopyView.hasContent
+      && !root.captureWaitExpired
+    repeat: false
+    onTriggered: root.captureWaitExpired = true
   }
 
   Timer {
@@ -472,6 +563,7 @@ Item {
     implicitWidth: 420
     implicitHeight: 480
     minimumSize: Qt.size(300, 240)
+    onClosed: root.dismissPicker()
 
     Rectangle {
       anchors.fill: parent
@@ -529,6 +621,11 @@ Item {
               : (sourceDelegate.index === sourceList.currentIndex ? "#4a4a4a" : "#252525")
             border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
             border.color: "#8a8a8a"
+            Accessible.role: Accessible.ListItem
+            Accessible.name: (sourceDelegate.modelData.title || sourceDelegate.modelData.appId || sourceDelegate.modelData.address)
+              + (sourceDelegate.modelData.appId ? ", " + sourceDelegate.modelData.appId : "")
+            Accessible.selectable: true
+            Accessible.selected: sourceDelegate.index === sourceList.currentIndex
 
             Text {
               anchors.left: parent.left
@@ -576,6 +673,13 @@ Item {
     implicitWidth: 560
     implicitHeight: 315
     minimumSize: Qt.size(160, 90)
+    onClosed: {
+      root.viewerVisible = false
+      root.cancelViewerConfiguration()
+      root.viewerConfigured = false
+      root.captureWaitExpired = false
+      root.controlsFocused = false
+    }
 
     Rectangle {
       id: viewerContainer
@@ -658,7 +762,7 @@ Item {
       color: "#cc151515"
       radius: 4
       opacity: root.controlsVisible ? 1.0 : 0.0
-      visible: opacity > 0
+      visible: true
       Behavior on opacity {
         NumberAnimation { duration: root.viewerHovered || root.controlsHovered ? 120 : 175 }
       }
@@ -690,16 +794,28 @@ Item {
               ? "Display mode: " + root.displayModeName()
               : (controlDelegate.modelData === "Choose" ? "Choose another source" : "Close picture-in-picture")
             Text { id: label; anchors.centerIn: parent; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : controlDelegate.modelData; color: "#ffffff"; font.pixelSize: 11 }
+            focus: controlDelegate.modelData === "Fill"
+            activeFocusOnTab: true
+            border.width: activeFocus ? 2 : 0
+            border.color: "#ffffff"
+            onActiveFocusChanged: {
+              root.controlsFocused = activeFocus
+              root.evaluateControlsVisibility()
+            }
+            Keys.onPressed: function(event) {
+              if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                root.activateControl(controlDelegate.modelData)
+                event.accepted = true
+              } else event.accepted = false
+            }
+            Accessible.onPressAction: root.activateControl(controlDelegate.modelData)
             HoverHandler { id: hover }
             MouseArea {
               id: buttonMouse
               anchors.fill: parent
+              enabled: root.controlsVisible || root.controlsFocused
               hoverEnabled: false
-              onClicked: {
-                if (controlDelegate.modelData === "Fill") root.cycleDisplayMode()
-                else if (controlDelegate.modelData === "Choose") root.chooseAnother()
-                else root.close()
-              }
+              onClicked: root.activateControl(controlDelegate.modelData)
             }
           }
         }
@@ -710,15 +826,20 @@ Item {
       id: unavailableBox
       anchors.centerIn: parent
       z: 4
-      visible: root.sourceUnavailable || !screencopyView.hasContent
+      visible: root.viewerConfigError !== "" || root.captureWaitExpired || root.sourceUnavailable || !screencopyView.hasContent
       color: "#cc151515"
       radius: 4
-      width: message.implicitWidth + 28
+      width: Math.min(parent.width - 20, 340)
       height: message.implicitHeight + 18
       Text {
         id: message
+        width: parent.width - 28
         anchors.centerIn: parent
-        text: root.sourceUnavailable ? "Source unavailable — Choose another window" : "Waiting for capture…"
+        wrapMode: Text.Wrap
+        horizontalAlignment: Text.AlignHCenter
+        text: root.viewerConfigError !== "" ? "Viewer setup failed — close and reopen to retry"
+          : (root.sourceUnavailable ? "Source unavailable — Choose another window"
+            : (root.captureWaitExpired ? "Capture did not start — choose another window or reopen" : "Waiting for capture…"))
         color: "#ffffff"
         font.pixelSize: 14
         Accessible.role: Accessible.StaticText

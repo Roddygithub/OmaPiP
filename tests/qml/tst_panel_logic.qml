@@ -22,6 +22,20 @@ TestCase {
         compare(Logic.isCapturableSource({ address: "0xabc", title: "Terminal", wayland: null }, "Viewer", "Picker"), false)
     }
 
+    function test_selectedSourceUsesObjectIdentityAndLatchesLoss() {
+        var selected = { address: "abc" }
+        var replacement = { address: "abc" }
+        var result = Logic.resolveSelectedSource(selected, false, [selected])
+        compare(result.resolved, selected)
+        compare(result.sourceLost, false)
+        result = Logic.resolveSelectedSource(selected, false, [replacement])
+        compare(result.resolved, null)
+        compare(result.sourceLost, true)
+        result = Logic.resolveSelectedSource(selected, true, [selected])
+        compare(result.resolved, null)
+        compare(result.sourceLost, true)
+    }
+
     function test_displaySize() {
         var size = Logic.displaySize(0, 560, 315, 2536, 1030)
         compare(size.w, 776)
@@ -42,6 +56,19 @@ TestCase {
         size = Logic.initialViewerSize(400, 200)
         compare(size.w, 240)
         compare(size.h, 135)
+    }
+
+    function test_logicalMonitorGeometry() {
+        var size = Logic.logicalMonitorSize(3840, 2160, 2, 0)
+        compare(size.w, 1920)
+        compare(size.h, 1080)
+        var area = Logic.monitorWorkArea(0, 0, 3840, 2160, 2, 0, [10, 20, 30, 40])
+        compare(area.x, 10)
+        compare(area.y, 20)
+        compare(area.w, 1880)
+        compare(area.h, 1020)
+        compare(Logic.logicalMonitorSize(1920, 1080, 1, 5).w, 1080)
+        compare(Logic.logicalMonitorSize(1920, 1080, 1, 7).h, 1920)
     }
 
     function test_boundedIndex() {
