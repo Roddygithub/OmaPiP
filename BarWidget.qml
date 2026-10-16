@@ -36,6 +36,10 @@ Ui.BarWidget {
 
   Loader {
     id: panelLoader
+    // Omarchy instantiates bar widgets per monitor. These Panel instances
+    // share one IPC target name, so CLI routing is not monitor-specific and
+    // simultaneous viewers can interfere. A shared service entry point is
+    // planned for a future release.
     active: true
     source: Qt.resolvedUrl("Panel.qml")
     visible: false

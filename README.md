@@ -1,8 +1,30 @@
 # OmaPiP
 
-Picture-in-Picture for any Wayland window on Omarchy.
+<p align="center">
+  <strong>Native Picture-in-Picture for Omarchy</strong><br>
+  Mirror any Wayland window into a movable, resizable, always-on-top viewer.
+</p>
 
-![OmaPiP viewer running in Omarchy](preview.png)
+<p align="center">
+  <a href="https://github.com/Roddygithub/OmaPiP/actions/workflows/validate.yml"><img src="https://github.com/Roddygithub/OmaPiP/actions/workflows/validate.yml/badge.svg?branch=main" alt="CI status"></a>
+  <a href="https://github.com/Roddygithub/OmaPiP/releases/latest"><img src="https://img.shields.io/github/v/release/Roddygithub/OmaPiP?display_name=tag&sort=semver" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Roddygithub/OmaPiP" alt="MIT license"></a>
+  <a href="https://omarchyplugins.com/plugin.html?id=io.github.roddygithub.omapip"><img src="https://img.shields.io/badge/Omarchy-Marketplace-8b5cf6" alt="Omarchy Marketplace"></a>
+</p>
+
+<p align="center">
+  <img src="preview.png" alt="OmaPiP viewer running in Omarchy" width="720">
+</p>
+
+<p align="center"><em>Keep a video, dashboard, build log, call, or reference window visible while you work.</em></p>
+
+<p align="center">
+  <a href="#quick-start">Install</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#controls">Controls</a> ·
+  <a href="#known-limitations">Limitations</a> ·
+  <a href="#development">Development</a>
+</p>
 
 ## Why OmaPiP?
 
@@ -145,13 +167,14 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 
 - Multi-monitor behavior has not yet received full validation
 - Mixed-DPI behavior has not yet received full validation
+- On multi-monitor setups the bar widget is instantiated per monitor; instances share one IPC target name, so CLI routing is not monitor-specific and simultaneous viewers can interfere (a shared service instance is planned for a future release)
 
 ## Compatibility & Status
 
 | Item | Status |
 |------|--------|
 | Current release | v0.1.2 |
-| Automated tests | 182 Node assertions across display, source/configuration, picker, and viewer suites; 16 Qt QML runner results (12 test functions plus setup/cleanup) |
+| Automated tests | 190 Node assertions across display, source/configuration, picker, and viewer suites; 16 Qt QML runner results (12 test functions plus setup/cleanup) |
 | GitHub Actions CI | Node and Qt QML suites plus manifest, required-file, preview, and changed-diff checks |
 | Marketplace | Listing status not verified; no marketplace approval or endorsement is claimed |
 
