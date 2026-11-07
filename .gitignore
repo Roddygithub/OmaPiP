@@ -12,3 +12,7 @@ node_modules/
 *.pem
 *.key
 credentials*
+
+# Python test caches
+__pycache__/
+*.py[cod]

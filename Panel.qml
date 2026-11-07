@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "./js"
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -172,9 +173,9 @@ Item {
   }
 
   function displayModeName() {
-    if (root.displayMode === root.modeFill) return "Fill"
-    if (root.displayMode === root.modeFit) return "Fit"
-    return "Stretch"
+    if (root.displayMode === root.modeFill) return L10n.t("Fill")
+    if (root.displayMode === root.modeFit) return L10n.t("Fit")
+    return L10n.t("Stretch")
   }
 
   function activateControl(action) {
@@ -329,7 +330,7 @@ Item {
 
   function timeoutViewerConfiguration() {
     root.cancelViewerConfiguration()
-    root.viewerConfigError = "viewer configuration timed out"
+    root.viewerConfigError = L10n.t("viewer configuration timed out")
   }
 
   function configurationClientMatches() {
@@ -352,7 +353,7 @@ Item {
   function onConfigurationFailed() {
     if (!Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) return
     root.viewerConfigPending = false
-    root.viewerConfigError = "hyprctl configuration failed"
+    root.viewerConfigError = L10n.t("hyprctl configuration failed")
   }
 
   function onConfigurationExited(exitCode) {
@@ -389,7 +390,7 @@ Item {
       root.viewerConfigured = true
       root.viewerConfigError = ""
     } else {
-      root.viewerConfigError = "viewer configuration was not confirmed"
+      root.viewerConfigError = L10n.t("viewer configuration was not confirmed")
     }
   }
 
@@ -537,7 +538,7 @@ Item {
       root.verifyProcessCancelRequested = false
       if (Logic.configurationGenerationIsCurrent(root.activeConfigGeneration, root.viewerConfigGeneration)) {
         root.viewerConfigPending = false
-        root.viewerConfigError = "viewer configuration process failed"
+        root.viewerConfigError = L10n.t("viewer configuration process failed")
       }
     }
   }
@@ -589,6 +590,8 @@ Item {
     id: picker
     visible: root.pickerVisible
     title: root.pickerTitle
+    contentItem.LayoutMirroring.enabled: L10n.rightToLeft
+    contentItem.LayoutMirroring.childrenInherit: true
     implicitWidth: 420
     implicitHeight: 480
     minimumSize: Qt.size(300, 240)
@@ -604,13 +607,17 @@ Item {
         spacing: 10
 
         Text {
-          text: "Choose a window to mirror"
+          width: parent.width
+          wrapMode: Text.Wrap
+          text: L10n.t("Choose a window to mirror")
           color: "#ffffff"
           font.pixelSize: 18
         }
 
         Text {
-          text: root.sourceEntries.length ? "Select a live Wayland window." : "No windows found."
+          width: parent.width
+          wrapMode: Text.Wrap
+          text: root.sourceEntries.length ? L10n.t("Select a live Wayland window.") : L10n.t("No windows found.")
           color: "#aaaaaa"
           font.pixelSize: 13
         }
@@ -625,7 +632,7 @@ Item {
           focus: true
           keyNavigationEnabled: false
           Accessible.role: Accessible.List
-          Accessible.name: "Capturable windows"
+          Accessible.name: L10n.t("Capturable windows")
 
           Keys.onPressed: function(event) {
             if (event.key === Qt.Key_Escape) root.dismissPicker()
@@ -805,6 +812,8 @@ Item {
 
       Row {
         id: controlsRow
+        LayoutMirroring.enabled: L10n.rightToLeft
+        LayoutMirroring.childrenInherit: true
         anchors.centerIn: parent
         spacing: 4
         Repeater {
@@ -812,7 +821,7 @@ Item {
           delegate: Rectangle {
             id: controlDelegate
             required property string modelData
-            width: label.implicitWidth + 12
+            width: Math.min(label.implicitWidth + 12, Math.max(24, (viewerWindow.width - 24) / 3))
             height: 20
             radius: 3
             // Passive HoverHandler drives the highlight; it does NOT steal
@@ -820,9 +829,9 @@ Item {
             color: hover.hovered ? "#555555" : "#333333"
             Accessible.role: Accessible.Button
             Accessible.name: controlDelegate.modelData === "Fill"
-              ? "Display mode: " + root.displayModeName()
-              : (controlDelegate.modelData === "Choose" ? "Choose another source" : "Close picture-in-picture")
-            Text { id: label; anchors.centerIn: parent; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : controlDelegate.modelData; color: "#ffffff"; font.pixelSize: 11 }
+              ? L10n.t("Display mode: ") + root.displayModeName()
+              : (controlDelegate.modelData === "Choose" ? L10n.t("Choose another source") : L10n.t("Close picture-in-picture"))
+            Text { id: label; anchors.centerIn: parent; width: parent.width - 12; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : L10n.t(controlDelegate.modelData); color: "#ffffff"; font.pixelSize: 11 }
             focus: controlDelegate.modelData === "Fill"
             activeFocusOnTab: true
             border.width: activeFocus ? 2 : 0
@@ -866,9 +875,9 @@ Item {
         anchors.centerIn: parent
         wrapMode: Text.Wrap
         horizontalAlignment: Text.AlignHCenter
-        text: root.viewerConfigError !== "" ? "Viewer setup failed — close and reopen to retry"
-          : (root.sourceUnavailable ? "Source unavailable — Choose another window"
-            : (root.captureWaitExpired ? "Capture did not start — choose another window or reopen" : "Waiting for capture…"))
+        text: root.viewerConfigError !== "" ? L10n.t("Viewer setup failed — close and reopen to retry")
+          : (root.sourceUnavailable ? L10n.t("Source unavailable — Choose another window")
+            : (root.captureWaitExpired ? L10n.t("Capture did not start — choose another window or reopen") : L10n.t("Waiting for capture…")))
         color: "#ffffff"
         font.pixelSize: 14
         Accessible.role: Accessible.StaticText

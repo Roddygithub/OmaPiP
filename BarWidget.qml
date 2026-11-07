@@ -1,10 +1,16 @@
 import QtQuick
+import "./js"
 import Quickshell.Io
 import qs.Commons
 import qs.Ui as Ui
 
 Ui.BarWidget {
   id: root
+    Binding {
+        target: UpdateService
+        property: "enabled"
+        value: root.setting("checkUpdates", true) === true
+    }
   moduleName: "io.github.roddygithub.omapip"
 
   readonly property bool opened: panelLoader.item
@@ -64,10 +70,20 @@ Ui.BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: ""
-    tooltipText: "OmaPiP — Picture in Picture"
+    tooltipText: L10n.t("OmaPiP — Picture in Picture") + (UpdateService.available ? "\n" + UpdateService.notice : "")
 
     onPressed: function(button) {
       if (button === Qt.LeftButton) root.toggle()
     }
   }
+    Rectangle {
+        width: 7
+        height: 7
+        radius: 4
+        color: Color.accent
+        visible: UpdateService.available
+        anchors.left: button.left
+        anchors.top: button.top
+        z: 11
+    }
 }
