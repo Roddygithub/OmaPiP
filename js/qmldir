@@ -1,0 +1,2 @@
+singleton L10n 1.0 L10n.qml
+singleton UpdateService 1.0 UpdateService.qml

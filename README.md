@@ -43,6 +43,8 @@ Keep any window visible while you work — a video, a dashboard, a build log, a 
 - **Exact source identity** — tracked by Hyprland address, not fragile titles
 - **No automatic source reattachment** — a lost source stays unavailable until explicit selection
 - **Explicit unavailable-source handling** — clear prompt when the source window is closed
+- **50 display languages** — follows the Omarchy language, with local translation catalogs
+- **Update notices** — daily release checks, desktop notification and bar indicator
 - **No helper daemon** — runs entirely inside `omarchy-shell` as QML
 - **No administrator privileges** — user-level only
 - **No capture persistence** — pixels are never written to disk by OmaPiP
@@ -106,13 +108,14 @@ The viewer keeps its geometry when switching sources or display modes.
 - Hyprland
 - Quickshell with `ScreencopyView` support
 - A Wayland session
+- Python 3 for release checks; optional `libnotify` for desktop update notices
 - Picker minimum size: 300×240; viewer minimum size: 160×90 logical pixels
 
 No minimum versions are enforced beyond what Omarchy itself requires.
 
 ## Privacy & Security
 
-- No network access from OmaPiP itself
+- A credential-free GitHub release check at startup and at most once per day; no window or capture data is sent
 - No authentication, secrets, or credentials
 - No administrator privileges required
 - No external helper, daemon, or portal (PipeWire, xdg-desktop-portal)
@@ -139,18 +142,25 @@ omarchy plugin remove io.github.roddygithub.omapip --yes
 
 ## Stay up to date
 
-New versions are published as GitHub Releases. To receive a notification when
-OmaPiP is updated, open the repository, choose **Watch → Custom → Releases**,
-or subscribe to the [release RSS feed](https://github.com/Roddygithub/OmaPiP/releases.atom).
-
-After a release notification, update the installed plugin with:
+OmaPiP checks for newer stable GitHub releases at startup and at most once
+per day. It shows a desktop notification once per available release and a dot
+on the bar icon. Hover the icon to see the translated update command:
 
 ```bash
 omarchy plugin update io.github.roddygithub.omapip --yes
 ```
 
-OmaPiP does not phone home or run a background update checker; release
-notifications stay opt-in and the plugin remains network-free at runtime.
+Updates are never installed automatically. Python 3 is required for the check;
+`notify-send` is optional because the bar indicator also reports availability.
+No window titles, captures or credentials are sent.
+
+## Languages
+
+The interface follows the language selected in Omarchy and ships all 50
+languages and regional variants locally, with English fallback and right-to-left
+layouts where appropriate. Catalogs are machine-translated with common French
+terminology reviewed manually. Background checks can be disabled with the widget’s `checkUpdates` setting.
+See [localization and update notices](docs/LOCALIZATION.md).
 
 ## CLI / Advanced Use
 
@@ -188,10 +198,10 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 
 | Item | Status |
 |------|--------|
-| Current release | v0.1.3 |
+| Current release | v0.2.0 |
 | Automated tests | 190 Node assertions across display, source/configuration, picker, and viewer suites; 16 Qt QML runner results (12 test functions plus setup/cleanup) |
 | GitHub Actions CI | Node and Qt QML suites plus manifest, required-file, preview, and changed-diff checks |
-| Marketplace | v0.1.3 snapshot listed and verified; marketplace verification is not a security audit or endorsement |
+| Marketplace | The previous v0.1.3 snapshot was verified; v0.2.0 requires a fresh exact-commit review. |
 
 ## Project Structure
 
@@ -216,6 +226,11 @@ LICENSE             # MIT
 ## Development
 
 ```bash
+# Check language catalogs and release notifications
+python3 tests/test_localization.py
+python3 tests/test_updates.py
+python3 tests/test_localization_runtime.py
+
 # Run automated Node tests
 node tests/test_display.js
 node tests/test_phase_a.js
