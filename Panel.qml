@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "./js"
 import Quickshell
+import qs.Commons
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -57,6 +58,12 @@ Item {
   function boundedText(value, limit) {
     return String(value || "").slice(0, limit)
   }
+
+  // Surface colours come from Commons.Color, whose properties are live
+  // bindings pushed by the shell on every theme switch. Nothing here is
+  // hardcoded, so the picker and the viewer chrome follow the active theme
+  // (Groovebox, Osaka, …) without a restart.
+  function tint(color, alpha) { return Qt.rgba(color.r, color.g, color.b, alpha) }
 
   function normalizeAddress(value) { return Logic.normalizeAddress(value) }
 
@@ -599,7 +606,7 @@ Item {
 
     Rectangle {
       anchors.fill: parent
-      color: "#151515"
+      color: Color.popups.background
 
       Column {
         anchors.fill: parent
@@ -610,7 +617,7 @@ Item {
           width: parent.width
           wrapMode: Text.Wrap
           text: L10n.t("Choose a window to mirror")
-          color: "#ffffff"
+          color: Color.popups.text
           font.pixelSize: 18
         }
 
@@ -618,7 +625,7 @@ Item {
           width: parent.width
           wrapMode: Text.Wrap
           text: root.sourceEntries.length ? L10n.t("Select a live Wayland window.") : L10n.t("No windows found.")
-          color: "#aaaaaa"
+          color: Color.muted
           font.pixelSize: 13
         }
 
@@ -653,10 +660,11 @@ Item {
             width: sourceList.width
             height: 54
             radius: 5
-            color: mouse.containsMouse ? "#3b3b3b"
-              : (sourceDelegate.index === sourceList.currentIndex ? "#4a4a4a" : "#252525")
+            color: sourceDelegate.index === sourceList.currentIndex
+              ? root.tint(Color.popups.text, 0.20)
+              : (mouse.containsMouse ? root.tint(Color.popups.text, 0.13) : root.tint(Color.popups.text, 0.06))
             border.width: sourceDelegate.index === sourceList.currentIndex ? 1 : 0
-            border.color: "#8a8a8a"
+            border.color: Color.accent
             Accessible.role: Accessible.ListItem
             Accessible.name: (sourceDelegate.modelData.title || sourceDelegate.modelData.appId || sourceDelegate.modelData.address)
               + (sourceDelegate.modelData.appId ? ", " + sourceDelegate.modelData.appId : "")
@@ -672,7 +680,7 @@ Item {
               anchors.topMargin: 8
               textFormat: Text.PlainText
               text: sourceDelegate.modelData.title || sourceDelegate.modelData.appId || sourceDelegate.modelData.address
-              color: "#ffffff"
+              color: Color.popups.text
               elide: Text.ElideRight
               font.pixelSize: 14
             }
@@ -683,7 +691,7 @@ Item {
               anchors.bottomMargin: 8
               textFormat: Text.PlainText
               text: sourceDelegate.modelData.appId
-              color: "#999999"
+              color: Color.muted
               font.pixelSize: 11
             }
             MouseArea {
@@ -795,7 +803,7 @@ Item {
       z: 5
       width: controlsRow.implicitWidth + 8
       height: 28
-      color: "#cc151515"
+      color: root.tint(Color.popups.background, 0.9)
       radius: 4
       opacity: root.controlsVisible ? 1.0 : 0.0
       visible: true
@@ -826,16 +834,16 @@ Item {
             radius: 3
             // Passive HoverHandler drives the highlight; it does NOT steal
             // hover from the parent overlay, so the controls stay visible.
-            color: hover.hovered ? "#555555" : "#333333"
+            color: hover.hovered ? root.tint(Color.accent, 0.35) : root.tint(Color.foreground, 0.16)
             Accessible.role: Accessible.Button
             Accessible.name: controlDelegate.modelData === "Fill"
               ? L10n.t("Display mode: ") + root.displayModeName()
               : (controlDelegate.modelData === "Choose" ? L10n.t("Choose another source") : L10n.t("Close picture-in-picture"))
-            Text { id: label; anchors.centerIn: parent; width: parent.width - 12; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : L10n.t(controlDelegate.modelData); color: "#ffffff"; font.pixelSize: 11 }
+            Text { id: label; anchors.centerIn: parent; width: parent.width - 12; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; text: controlDelegate.modelData === "Fill" ? root.displayModeName() : L10n.t(controlDelegate.modelData); color: Color.popups.text; font.pixelSize: 11 }
             focus: controlDelegate.modelData === "Fill"
             activeFocusOnTab: true
             border.width: activeFocus ? 2 : 0
-            border.color: "#ffffff"
+            border.color: Color.accent
             onActiveFocusChanged: {
               root.controlsFocused = activeFocus
               root.evaluateControlsVisibility()
@@ -865,7 +873,7 @@ Item {
       anchors.centerIn: parent
       z: 4
       visible: root.viewerConfigError !== "" || root.captureWaitExpired || root.sourceUnavailable || !screencopyView.hasContent
-      color: "#cc151515"
+      color: root.tint(Color.popups.background, 0.9)
       radius: 4
       width: Math.min(parent.width - 20, 340)
       height: message.implicitHeight + 18
@@ -878,7 +886,7 @@ Item {
         text: root.viewerConfigError !== "" ? L10n.t("Viewer setup failed — close and reopen to retry")
           : (root.sourceUnavailable ? L10n.t("Source unavailable — Choose another window")
             : (root.captureWaitExpired ? L10n.t("Capture did not start — choose another window or reopen") : L10n.t("Waiting for capture…")))
-        color: "#ffffff"
+        color: Color.popups.text
         font.pixelSize: 14
         Accessible.role: Accessible.StaticText
         Accessible.name: message.text
