@@ -31,6 +31,7 @@ QtObject {
         printErrors: false
     }
     property Process checker: Process {
+        onExited: escalate.stop()
         stdout: StdioCollector {
             onStreamFinished: {
                 var candidate = text.trim()
@@ -38,10 +39,20 @@ QtObject {
             }
         }
     }
+    // Termination is a request, not a guarantee: escalate to a hard stop so a
+    // wedged checker cannot outlive its deadline or block the next check.
     property Timer deadline: Timer {
         interval: 30000
         running: checker.running
-        onTriggered: checker.signal(15)
+        onTriggered: {
+            if (!checker.running) return
+            checker.signal(15)
+            escalate.restart()
+        }
+    }
+    property Timer escalate: Timer {
+        interval: 2000
+        onTriggered: { if (checker.running) checker.running = false }
     }
     property Timer daily: Timer {
         interval: 24 * 60 * 60 * 1000

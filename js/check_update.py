@@ -62,7 +62,8 @@ def check(plugin, installed, title, message, state_home=None, now=None):
     with (directory / "update.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            state = json.loads(path.read_text())
+            with path.open("rb") as stream:
+                state = json.loads(stream.read(4096))  # bounded cache read
             if not isinstance(state, dict):
                 state = {}
         except (OSError, ValueError):

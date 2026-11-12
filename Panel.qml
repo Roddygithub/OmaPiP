@@ -34,9 +34,15 @@ Item {
   property bool verifyProcessStarted: false
   property bool hyprctlProcessCancelRequested: false
   property bool verifyProcessCancelRequested: false
+  property bool placementBusy: false
+  property string pendingPlacement: ""
   property string viewerConfigError: ""
   readonly property int maxViewerConfigAttempts: 3
   readonly property int maxPickerFocusAttempts: 20
+  // Admission caps: the compositor's client list and the picker are input, not
+  // a promise to grow the plugin's memory without limit.
+  readonly property int maxSourceEntries: 64
+  readonly property int maxClientsBytes: 131072
   property int pickerFocusAttempts: 0
   property bool pickerFocusEstablished: false
   property bool sourceLost: false
@@ -87,6 +93,7 @@ Item {
     var entries = []
     var capturableToplevels = []
     for (var i = 0; i < list.length; i++) {
+      if (capturableToplevels.length >= root.maxSourceEntries) break
       var toplevel = list[i]
       if (!root.isCapturableSource(toplevel)) continue
       capturableToplevels.push(toplevel)
@@ -236,7 +243,19 @@ Item {
     var command = "dispatch hl.dsp.window.move({ x = " + x + ", y = " + y
       + ", window = \"" + selector + "\" }); dispatch hl.dsp.window.alter_zorder({ mode = \"top\", window = \""
       + selector + "\" })"
-    Quickshell.execDetached(["hyprctl", "--batch", command])
+    root.pendingPlacement = command
+    root.pumpPlacement()
+  }
+
+  // Placement is finite, untracked work: one batch at a time, the latest
+  // request wins, and an absolute deadline so a wedged helper cannot pile up.
+  function pumpPlacement() {
+    if (root.placementBusy || root.pendingPlacement === "") return
+    placementProcess.command = ["hyprctl", "--batch", root.pendingPlacement]
+    root.pendingPlacement = ""
+    root.placementBusy = true
+    placementDeadline.restart()
+    placementProcess.running = true
   }
 
   function select(address) {
@@ -380,7 +399,11 @@ Item {
     root.verifyProcessStarted = false
     root.verifyProcessCancelRequested = false
     root.verifyProcessBusy = true
-    verifyProcess.command = ["hyprctl", "clients", "-j"]
+    // Cap the JSON while it is read: the collector never holds more than
+    // maxClientsBytes, and an over-long answer is rejected instead of parsed.
+    verifyProcess.command = ["/bin/sh", "-c",
+      "out=$(hyprctl clients -j | head -c " + (root.maxClientsBytes + 1) + "); "
+      + "[ ${#out} -le " + root.maxClientsBytes + " ] || exit 1; printf '%s' \"$out\""]
     verifyProcess.running = true
   }
 
@@ -492,6 +515,36 @@ Item {
       }
       root.pickerFocusAttempts++
       sourceList.forceActiveFocus()
+    }
+  }
+
+  Process {
+    id: placementProcess
+    onExited: {
+      placementDeadline.stop()
+      placementKill.stop()
+      root.placementBusy = false
+      root.pumpPlacement()
+    }
+  }
+
+  Timer {
+    id: placementDeadline
+    interval: 3000
+    onTriggered: {
+      if (!placementProcess.running) return
+      placementProcess.signal(15)
+      placementKill.restart()
+    }
+  }
+
+  Timer {
+    id: placementKill
+    interval: 1000
+    onTriggered: {
+      if (placementProcess.running) placementProcess.running = false
+      root.placementBusy = false
+      root.pumpPlacement()
     }
   }
 
