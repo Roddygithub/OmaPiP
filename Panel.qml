@@ -35,6 +35,7 @@ Item {
   property bool hyprctlProcessCancelRequested: false
   property bool verifyProcessCancelRequested: false
   property bool placementBusy: false
+  property bool placementProcessStarted: false
   property string pendingPlacement: ""
   property string viewerConfigError: ""
   readonly property int maxViewerConfigAttempts: 3
@@ -254,7 +255,9 @@ Item {
     placementProcess.command = ["hyprctl", "--batch", root.pendingPlacement]
     root.pendingPlacement = ""
     root.placementBusy = true
+    root.placementProcessStarted = false
     placementDeadline.restart()
+    placementStartFailure.restart()
     placementProcess.running = true
   }
 
@@ -345,11 +348,14 @@ Item {
     if (hyprctlProcess.running) {
       root.hyprctlProcessCancelRequested = true
       hyprctlProcess.running = false
+      hyprctlCancelKill.restart()
     }
     if (verifyProcess.running) {
       root.verifyProcessCancelRequested = true
       verifyProcess.running = false
+      verifyCancelKill.restart()
     }
+    viewerConfigWatchdog.stop()
     // Termination is asynchronous; only onExited releases a process slot.
     root.viewerConfigPending = false
   }
@@ -520,9 +526,12 @@ Item {
 
   Process {
     id: placementProcess
+    onStarted: root.placementProcessStarted = true
     onExited: {
       placementDeadline.stop()
       placementKill.stop()
+      placementStartFailure.stop()
+      root.placementProcessStarted = false
       root.placementBusy = false
       root.pumpPlacement()
     }
@@ -533,6 +542,7 @@ Item {
     interval: 3000
     onTriggered: {
       if (!placementProcess.running) return
+      // Termination is a request; escalate if it is ignored.
       placementProcess.signal(15)
       placementKill.restart()
     }
@@ -542,9 +552,39 @@ Item {
     id: placementKill
     interval: 1000
     onTriggered: {
-      if (placementProcess.running) placementProcess.running = false
+      // SIGTERM was ignored: only SIGKILL bounds a wedged helper. The slot is
+      // released by onExited, never before the child is actually gone.
+      if (placementProcess.running) placementProcess.signal(9)
+    }
+  }
+
+  // A process that never starts reports no exit: settle the slot so placement
+  // cannot stay busy forever.
+  Timer {
+    id: placementStartFailure
+    interval: 100
+    onTriggered: {
+      if (!root.placementBusy || placementProcess.running || root.placementProcessStarted) return
       root.placementBusy = false
       root.pumpPlacement()
+    }
+  }
+
+  // Cancellation escalates the same way: a config helper that ignores SIGTERM
+  // must not keep its slot pending indefinitely.
+  Timer {
+    id: hyprctlCancelKill
+    interval: 1000
+    onTriggered: {
+      if (hyprctlProcess.running) hyprctlProcess.signal(9)
+    }
+  }
+
+  Timer {
+    id: verifyCancelKill
+    interval: 1000
+    onTriggered: {
+      if (verifyProcess.running) verifyProcess.signal(9)
     }
   }
 

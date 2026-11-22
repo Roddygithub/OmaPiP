@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Escalate the update checker to SIGKILL when its SIGTERM deadline is ignored instead of sending another SIGTERM.
+- Release the placement slot only once the helper has exited, kill a wedged placement with SIGKILL after a second, and settle a placement whose start failed.
+- Escalate a cancelled viewer configuration to SIGKILL and stop its watchdog.
+- Read the Omarchy language file through a bounded 256-byte helper, polled twice a second, instead of a `FileView` that reads the whole file.
+
 ## [0.2.1] - 2026-11-12
 
 - Cap the `hyprctl clients -j` answer while it is read and reject an over-long one instead of parsing it.

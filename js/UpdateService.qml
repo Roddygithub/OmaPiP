@@ -52,7 +52,13 @@ QtObject {
     }
     property Timer escalate: Timer {
         interval: 2000
-        onTriggered: { if (checker.running) checker.running = false }
+        onTriggered: {
+            if (!checker.running) return
+            // In Quickshell 0.3.2 `running = false` is another SIGTERM: escalate
+            // to a signal the child cannot ignore, then release the slot.
+            checker.signal(9)
+            checker.running = false
+        }
     }
     property Timer daily: Timer {
         interval: 24 * 60 * 60 * 1000
