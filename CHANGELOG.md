@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.2] - 2026-11-22
 
 - Escalate the update checker to SIGKILL when its SIGTERM deadline is ignored instead of sending another SIGTERM.
 - Release the placement slot only once the helper has exited, kill a wedged placement with SIGKILL after a second, and settle a placement whose start failed.

@@ -198,10 +198,10 @@ omarchy-shell io.github.roddygithub.omapip cycleDisplayMode
 
 | Item | Status |
 |------|--------|
-| Current release | v0.2.0 |
+| Current release | v0.2.2 |
 | Automated tests | 190 Node assertions across display, source/configuration, picker, and viewer suites; 16 Qt QML runner results (12 test functions plus setup/cleanup) |
 | GitHub Actions CI | Node and Qt QML suites plus manifest, required-file, preview, and changed-diff checks |
-| Marketplace | The previous v0.1.3 snapshot was verified; v0.2.0 requires a fresh exact-commit review. |
+| Marketplace | The previous v0.1.3 snapshot was verified; v0.2.2 requires a fresh exact-commit review. |
 
 ## Project Structure
 
